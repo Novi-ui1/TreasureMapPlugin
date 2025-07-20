@@ -5,6 +5,9 @@ import com.noviui.treasuredungeon.config.LanguageManager;
 import com.noviui.treasuredungeon.editor.tools.BuildTool;
 import com.noviui.treasuredungeon.editor.tools.SelectionTool;
 import com.noviui.treasuredungeon.editor.tools.SpawnTool;
+import com.noviui.treasuredungeon.editor.tools.CopyPasteTool;
+import com.noviui.treasuredungeon.editor.tools.UndoRedoTool;
+import com.noviui.treasuredungeon.editor.tools.PreviewTool;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -37,6 +40,9 @@ public class EditorSession {
     private final BuildTool buildTool;
     private final SelectionTool selectionTool;
     private final SpawnTool spawnTool;
+    private final CopyPasteTool copyPasteTool;
+    private final UndoRedoTool undoRedoTool;
+    private final PreviewTool previewTool;
     
     // Session data
     private final Map<String, Object> sessionData = new HashMap<>();
@@ -52,6 +58,9 @@ public class EditorSession {
         this.buildTool = new BuildTool(this);
         this.selectionTool = new SelectionTool(this);
         this.spawnTool = new SpawnTool(this);
+        this.copyPasteTool = new CopyPasteTool(this);
+        this.undoRedoTool = new UndoRedoTool(this);
+        this.previewTool = new PreviewTool(this);
         
         plugin.getLogger().info("Created editor session " + sessionId + " for player " + player.getName());
     }
@@ -91,6 +100,15 @@ public class EditorSession {
                     break;
                 case "TEMPLATES":
                     handleTemplatesClick(event);
+                    break;
+                case "MAP_EDITOR":
+                    handleMapEditorClick(event);
+                    break;
+                case "ADVANCED_TOOLS":
+                    handleAdvancedToolsClick(event);
+                    break;
+                case "EXPORT_IMPORT":
+                    handleExportImportClick(event);
                     break;
                 default:
                     plugin.getLogger().warning("Unknown editor mode: " + currentMode);
@@ -138,6 +156,18 @@ public class EditorSession {
         } else if (displayName.contains("Properties")) {
             setMode("PROPERTIES");
             // Open properties panel
+        } else if (displayName.contains("Map Editor")) {
+            setMode("MAP_EDITOR");
+            // Open map editor
+        } else if (displayName.contains("Advanced Tools")) {
+            setMode("ADVANCED_TOOLS");
+            // Open advanced tools
+        } else if (displayName.contains("Export/Import")) {
+            setMode("EXPORT_IMPORT");
+            // Open export/import
+        } else if (displayName.contains("Preview")) {
+            // Toggle preview mode
+            togglePreview();
         }
     }
     
@@ -172,6 +202,33 @@ public class EditorSession {
     
     private void handleTemplatesClick(InventoryClickEvent event) {
         // Handle template selection
+    }
+    
+    private void handleMapEditorClick(InventoryClickEvent event) {
+        // Handle map editor interactions
+    }
+    
+    private void handleAdvancedToolsClick(InventoryClickEvent event) {
+        ItemStack item = event.getCurrentItem();
+        if (item == null || !item.hasItemMeta()) {
+            return;
+        }
+        
+        String displayName = item.getItemMeta().getDisplayName();
+        
+        if (displayName.contains("Undo")) {
+            undoRedoTool.undo();
+        } else if (displayName.contains("Redo")) {
+            undoRedoTool.redo();
+        } else if (displayName.contains("Copy")) {
+            // Handle copy operation
+        } else if (displayName.contains("Paste")) {
+            // Handle paste operation
+        }
+    }
+    
+    private void handleExportImportClick(InventoryClickEvent event) {
+        // Handle export/import operations
     }
     
     // Getters and setters
@@ -229,12 +286,28 @@ public class EditorSession {
         return spawnTool;
     }
     
+    public CopyPasteTool getCopyPasteTool() {
+        return copyPasteTool;
+    }
+    
+    public UndoRedoTool getUndoRedoTool() {
+        return undoRedoTool;
+    }
+    
+    public PreviewTool getPreviewTool() {
+        return previewTool;
+    }
+    
     public boolean hasUnsavedChanges() {
         return hasUnsavedChanges;
     }
     
     public void setUnsavedChanges(boolean hasChanges) {
         this.hasUnsavedChanges = hasChanges;
+    }
+    
+    public TreasureDungeonPlugin getPlugin() {
+        return plugin;
     }
     
     // Session data management
@@ -254,6 +327,17 @@ public class EditorSession {
             return (T) value;
         }
         return null;
+    }
+    
+    /**
+     * Toggles preview mode
+     */
+    private void togglePreview() {
+        if (previewTool.isPreviewActive()) {
+            previewTool.stopPreview();
+        } else {
+            // Start preview with current selection
+        }
     }
     
     /**
@@ -281,6 +365,12 @@ public class EditorSession {
     public void cleanup() {
         try {
             // Save any unsaved changes if needed
+            
+            // Cleanup tools
+            if (previewTool != null) {
+                previewTool.cleanup();
+            }
+            
             if (hasUnsavedChanges) {
                 // Could implement auto-save here
             }

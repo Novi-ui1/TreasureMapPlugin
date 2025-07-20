@@ -90,3 +90,20 @@ messages:
   editor-dungeon-saved: "&aConfiguração da dungeon guardada com sucesso!"
   editor-save-failed: "&cFalhou ao guardar configuração da dungeon."
   editor-unsaved-changes: "&eTens alterações não guardadas no editor."
+  
+  # Advanced editor messages
+  editor-undo-success: "&aDesfazer bem-sucedido! Revertidas {count} ações."
+  editor-redo-success: "&aRefazer bem-sucedido! Restauradas {count} ações."
+  editor-copy-success: "&aCopiados {count} blocos para a área de transferência."
+  editor-paste-success: "&aColados {count} blocos da área de transferência."
+  editor-preview-started: "&aModo de pré-visualização ativado! Usa partículas para ver a estrutura."
+  editor-preview-stopped: "&7Modo de pré-visualização desativado."
+  editor-fill-success: "&aPreenchidos {count} blocos com {material}."
+  editor-clear-success: "&aLimpos {count} blocos da seleção."
+  
+  # Collaboration messages
+  collab-invite-sent: "&aConvite enviado para {player}!"
+  collab-invite-received: "&e{player} convidou-te a colaborar na dungeon: {dungeon}"
+  collab-joined: "&aJuntaste-te à sessão colaborativa!"
+  collab-left: "&7Saíste da sessão colaborativa."
+  collab-session-locked: "&cEsta sessão está atualmente bloqueada para edição."

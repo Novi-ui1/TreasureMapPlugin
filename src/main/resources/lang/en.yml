@@ -90,3 +90,20 @@ messages:
   editor-dungeon-saved: "&aDungeon configuration saved successfully!"
   editor-save-failed: "&cFailed to save dungeon configuration."
   editor-unsaved-changes: "&eYou have unsaved changes in the editor."
+  
+  # Advanced editor messages
+  editor-undo-success: "&aUndo successful! Reverted {count} actions."
+  editor-redo-success: "&aRedo successful! Restored {count} actions."
+  editor-copy-success: "&aCopied {count} blocks to clipboard."
+  editor-paste-success: "&aPasted {count} blocks from clipboard."
+  editor-preview-started: "&aPreview mode activated! Use particles to see structure."
+  editor-preview-stopped: "&7Preview mode deactivated."
+  editor-fill-success: "&aFilled {count} blocks with {material}."
+  editor-clear-success: "&aCleared {count} blocks from selection."
+  
+  # Collaboration messages
+  collab-invite-sent: "&aInvitation sent to {player}!"
+  collab-invite-received: "&e{player} invited you to collaborate on dungeon: {dungeon}"
+  collab-joined: "&aYou joined the collaborative session!"
+  collab-left: "&7You left the collaborative session."
+  collab-session-locked: "&cThis session is currently locked for editing."
