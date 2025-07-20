@@ -81,3 +81,12 @@ messages:
   
   command-tp-usage: "&eUsage: /treasure tp"
   command-reload-usage: "&eUsage: /treasure reload"
+  
+  # Editor messages
+  editor-welcome: "&aWelcome to the Dungeon Editor! Use the GUI to create amazing dungeons."
+  editor-closed: "&7Dungeon editor closed."
+  editor-error: "&cAn error occurred while opening the editor."
+  editor-material-selected: "&aSelected material: &e{material}"
+  editor-dungeon-saved: "&aDungeon configuration saved successfully!"
+  editor-save-failed: "&cFailed to save dungeon configuration."
+  editor-unsaved-changes: "&eYou have unsaved changes in the editor."

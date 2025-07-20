@@ -9,6 +9,7 @@ import com.noviui.treasuredungeon.dungeon.DungeonBuilder;
 import com.noviui.treasuredungeon.database.DatabaseManager;
 import com.noviui.treasuredungeon.placeholders.PlaceholderManager;
 import com.noviui.treasuredungeon.integration.IntegrationManager;
+import com.noviui.treasuredungeon.editor.EditorManager;
 import com.noviui.treasuredungeon.listeners.CommandBlockListener;
 import com.noviui.treasuredungeon.listeners.McMMOListener;
 import com.noviui.treasuredungeon.listeners.PlayerInteractListener;
@@ -38,6 +39,7 @@ public final class TreasureDungeonPlugin extends JavaPlugin {
     private PlaceholderManager placeholderManager;
     private LocationManager locationManager;
     private UpdateChecker updateChecker;
+    private EditorManager editorManager;
     
     private BukkitTask autoSaveTask;
     
@@ -96,6 +98,11 @@ public final class TreasureDungeonPlugin extends JavaPlugin {
                 dungeonBuilder.cleanup();
             }
             
+            // Cleanup editor manager
+            if (editorManager != null) {
+                editorManager.cleanup();
+            }
+            
             // Close database connection
             if (databaseManager != null) {
                 databaseManager.close();
@@ -125,6 +132,7 @@ public final class TreasureDungeonPlugin extends JavaPlugin {
             this.databaseManager = new DatabaseManager(this);
             this.locationManager = new LocationManager(this);
             this.updateChecker = new UpdateChecker(this);
+            this.editorManager = new EditorManager(this);
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialize managers", e);
         }
@@ -315,5 +323,9 @@ public final class TreasureDungeonPlugin extends JavaPlugin {
     
     public LocationManager getLocationManager() {
         return locationManager;
+    }
+    
+    public EditorManager getEditorManager() {
+        return editorManager;
     }
 }

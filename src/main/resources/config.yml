@@ -72,9 +72,10 @@ database:
 
 # Dungeon Types Configuration
 dungeon-types:
-  # Each dungeon type has its own schematics and settings
   ancient_mine:
-    weight: 30  # Higher weight = more likely to be selected
+    enabled: true
+    chance: 30%  # Percentage chance (0-100%)
+    difficulty: medium
     schematic-bell: "bell-ancient-mine.schem"
     schematic-dungeon: "ancient-mine-dungeon.schem"
     waves:
@@ -94,7 +95,9 @@ dungeon-types:
         - "eco give {player} 1000"
   
   cursed_forest:
-    weight: 25
+    enabled: true
+    chance: 25%
+    difficulty: easy
     schematic-bell: "bell-cursed-forest.schem"
     schematic-dungeon: "cursed-forest-dungeon.schem"
     waves:
@@ -113,7 +116,9 @@ dungeon-types:
         - "eco give {player} 800"
   
   frozen_cavern:
-    weight: 20
+    enabled: true
+    chance: 20%
+    difficulty: hard
     schematic-bell: "bell-frozen-cavern.schem"
     schematic-dungeon: "frozen-cavern-dungeon.schem"
     waves:
@@ -134,7 +139,9 @@ dungeon-types:
         - "eco give {player} 1200"
   
   desert_tomb:
-    weight: 15
+    enabled: true
+    chance: 15%
+    difficulty: hard
     schematic-bell: "bell-desert-tomb.schem"
     schematic-dungeon: "desert-tomb-dungeon.schem"
     waves:
@@ -154,7 +161,9 @@ dungeon-types:
         - "eco give {player} 1500"
   
   volcanic_depths:
-    weight: 10
+    enabled: true
+    chance: 10%
+    difficulty: extreme
     schematic-bell: "bell-volcanic-depths.schem"
     schematic-dungeon: "volcanic-depths-dungeon.schem"
     waves:
@@ -180,7 +189,7 @@ skills:
   mining:
     enabled: true
     level-required: 1000
-    chance-to-drop: 0.3  # 30%
+    chance-to-drop: 30%  # Percentage chance (0-100%)
     cooldown: "6h"
     
     # Map item configuration
@@ -198,7 +207,7 @@ skills:
   woodcutting:
     enabled: true
     level-required: 1000
-    chance-to-drop: 0.25
+    chance-to-drop: 25%
     cooldown: "6h"
     
     map-item:

@@ -13,7 +13,7 @@ softdepend: [ WorldEdit, MythicMobs, Multiverse-Core ]
 commands:
   treasure:
     description: Main treasure dungeon command
-    usage: /<command> [tp|reload]
+    usage: /<command> [tp|reload|editor]
     permission: treasure.use
     aliases: [ td, treasuredungeon ]
 
@@ -29,4 +29,7 @@ permissions:
     default: op
   treasure.reload:
     description: Reload plugin configuration
+    default: op
+  treasure.editor:
+    description: Access to dungeon editor
     default: op

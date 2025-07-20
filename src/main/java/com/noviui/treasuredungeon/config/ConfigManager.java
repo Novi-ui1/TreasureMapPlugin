@@ -162,7 +162,9 @@ public class ConfigManager {
     }
     
     public double getSkillDropChance(String skill) {
-        return config.getDouble("skills." + skill + ".chance-to-drop", 0.3);
+        double chance = config.getDouble("skills." + skill + ".chance-to-drop", 30.0);
+        // Convert percentage to decimal if needed (30% -> 0.3)
+        return chance > 1.0 ? chance / 100.0 : chance;
     }
     
     public String getSkillCooldown(String skill) {
@@ -230,7 +232,16 @@ public class ConfigManager {
     }
     
     public int getDungeonTypeWeight(String dungeonType) {
-        return config.getInt("dungeon-types." + dungeonType + ".weight", 1);
+        // Support both old weight system and new percentage system
+        if (config.contains("dungeon-types." + dungeonType + ".chance")) {
+            return config.getInt("dungeon-types." + dungeonType + ".chance", 10);
+        }
+        return config.getInt("dungeon-types." + dungeonType + ".weight", 10);
+    }
+    
+    public double getDungeonTypeChance(String dungeonType) {
+        double chance = config.getDouble("dungeon-types." + dungeonType + ".chance", 10.0);
+        return chance > 1.0 ? chance / 100.0 : chance;
     }
     
     public String getDungeonTypeBellSchematic(String dungeonType) {

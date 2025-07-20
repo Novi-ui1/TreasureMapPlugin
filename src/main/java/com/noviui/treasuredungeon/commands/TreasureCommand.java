@@ -3,6 +3,7 @@ package com.noviui.treasuredungeon.commands;
 import com.noviui.treasuredungeon.TreasureDungeonPlugin;
 import com.noviui.treasuredungeon.config.ConfigManager;
 import com.noviui.treasuredungeon.config.LanguageManager;
+import com.noviui.treasuredungeon.editor.EditorManager;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -17,11 +18,13 @@ public class TreasureCommand implements CommandExecutor {
     private final TreasureDungeonPlugin plugin;
     private final ConfigManager configManager;
     private final LanguageManager languageManager;
+    private final EditorManager editorManager;
     
     public TreasureCommand(TreasureDungeonPlugin plugin) {
         this.plugin = plugin;
         this.configManager = plugin.getConfigManager();
         this.languageManager = plugin.getLanguageManager();
+        this.editorManager = plugin.getEditorManager();
     }
     
     @Override
@@ -40,6 +43,9 @@ public class TreasureCommand implements CommandExecutor {
                 
             case "reload":
                 return handleReload(sender);
+                
+            case "editor":
+                return handleEditor(sender);
                 
             default:
                 sendHelp(sender);
@@ -104,6 +110,25 @@ public class TreasureCommand implements CommandExecutor {
         return true;
     }
     
+    private boolean handleEditor(CommandSender sender) {
+        if (!sender.hasPermission("treasure.editor")) {
+            String message = languageManager.getMessage("no-permission");
+            sender.sendMessage(languageManager.getPrefix() + message);
+            return true;
+        }
+        
+        if (!(sender instanceof Player)) {
+            String message = languageManager.getMessage("player-only");
+            sender.sendMessage(languageManager.getPrefix() + message);
+            return true;
+        }
+        
+        Player player = (Player) sender;
+        editorManager.openEditor(player);
+        
+        return true;
+    }
+    
     private void sendHelp(CommandSender sender) {
         List<String> helpMessages = languageManager.getConfig().getStringList("messages.command-help");
         
@@ -111,6 +136,7 @@ public class TreasureCommand implements CommandExecutor {
             sender.sendMessage(languageManager.getPrefix() + "§6Treasure Dungeon Commands:");
             sender.sendMessage("§e/treasure tp §7- Teleport to treasure spawn");
             sender.sendMessage("§e/treasure reload §7- Reload configuration");
+            sender.sendMessage("§e/treasure editor §7- Open dungeon editor");
         } else {
             for (String line : helpMessages) {
                 sender.sendMessage(languageManager.getPrefix() + line);
