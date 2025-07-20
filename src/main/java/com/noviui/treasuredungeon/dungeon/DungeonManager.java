@@ -23,20 +23,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
-
-import java.io.File;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.logging.Level;
 
 public class DungeonManager {
     
@@ -47,10 +33,12 @@ public class DungeonManager {
     private final IntegrationManager integrationManager;
     private final LocationManager locationManager;
     private final SpawnManager spawnManager;
+    private final PartyManager partyManager;
     
     // Active dungeons tracking
     private final Map<UUID, String> playerActiveDungeon = new ConcurrentHashMap<>();
     private final Map<UUID, String> playerDungeonType = new ConcurrentHashMap<>();
+    private final Map<UUID, PartyManager.DungeonDifficulty> playerDifficulty = new ConcurrentHashMap<>();
     private final Map<UUID, Map<String, Location>> playerBellLocations = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, Double>> bossDamageTracker = new ConcurrentHashMap<>();
     private final Map<UUID, BukkitTask> activeTasks = new ConcurrentHashMap<>();
@@ -63,6 +51,305 @@ public class DungeonManager {
         this.integrationManager = plugin.getIntegrationManager();
         this.locationManager = plugin.getLocationManager();
         this.spawnManager = new SpawnManager(plugin);
+        this.partyManager = new PartyManager(plugin);
+    }
+    
+    public void startDungeonAtLocation(Location buildLocation, String dungeonType, UUID initiatorId, List<Player> participants) {
+        if (buildLocation == null || dungeonType == null || initiatorId == null || participants == null) {
+            plugin.getLogger().warning("Invalid parameters in startDungeonAtLocation");
+            return;
+        }
+        
+        try {
+            // Mark dungeon as active for all participants
+            for (Player participant : participants) {
+                if (participant != null) {
+                    String skill = getPlayerSkill(participant.getUniqueId());
+                    if (skill != null) {
+                        playerActiveDungeon.put(participant.getUniqueId(), skill);
+                        playerDungeonType.put(participant.getUniqueId(), dungeonType);
+                    }
+                }
+            }
+            
+            // Send start message
+            String message = languageManager.getMessage("dungeon-started");
+            for (Player participant : participants) {
+                if (participant != null && participant.isOnline()) {
+                    participant.sendMessage(languageManager.getPrefix() + message);
+                }
+            }
+            
+            // Start waves with scaled difficulty
+            startWavesWithDifficulty(participants, dungeonType, buildLocation);
+            
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Error starting dungeon at location", e);
+            
+            // Cleanup on error
+            for (Player participant : participants) {
+                if (participant != null) {
+                    String skill = getPlayerSkill(participant.getUniqueId());
+                    if (skill != null) {
+                        cleanupPlayerDungeon(participant.getUniqueId(), skill);
+                    }
+                }
+            }
+        }
+    }
+    
+    private void startWavesWithDifficulty(List<Player> participants, String dungeonType, Location location) {
+        if (participants == null || participants.isEmpty() || dungeonType == null || location == null) {
+            plugin.getLogger().warning("Invalid parameters in startWavesWithDifficulty");
+            return;
+        }
+        
+        UUID initiatorId = participants.get(0).getUniqueId();
+        PartyManager.DungeonDifficulty difficulty = playerDifficulty.get(initiatorId);
+        
+        if (difficulty == null) {
+            // Default difficulty for solo
+            difficulty = new PartyManager.DungeonDifficulty("Solo", 1.0, 1.0, 1.0);
+        }
+        
+        try {
+            int waveCount = configManager.getDungeonTypeWaveCount(dungeonType);
+            
+            if (waveCount <= 0) {
+                plugin.getLogger().warning("Invalid wave count for dungeon type: " + dungeonType);
+                spawnBossWithDifficulty(participants, dungeonType, location, difficulty);
+                return;
+            }
+            
+            BukkitTask task = new BukkitRunnable() {
+                int currentWave = 1;
+                
+                @Override
+                public void run() {
+                    try {
+                        // Check if any participants are still online and in the right world
+                        List<Player> onlineParticipants = new ArrayList<>();
+                        for (Player participant : participants) {
+                            if (participant != null && participant.isOnline() && 
+                                participant.getWorld().equals(location.getWorld())) {
+                                onlineParticipants.add(participant);
+                            }
+                        }
+                        
+                        if (onlineParticipants.isEmpty()) {
+                            this.cancel();
+                            for (Player participant : participants) {
+                                if (participant != null) {
+                                    String skill = getPlayerSkill(participant.getUniqueId());
+                                    if (skill != null) {
+                                        cleanupPlayerDungeon(participant.getUniqueId(), skill);
+                                    }
+                                }
+                            }
+                            return;
+                        }
+                        
+                        if (currentWave <= waveCount) {
+                            spawnWaveWithDifficulty(onlineParticipants, dungeonType, currentWave, location, difficulty);
+                            currentWave++;
+                        } else {
+                            // All waves completed, spawn boss
+                            this.cancel();
+                            spawnBossWithDifficulty(onlineParticipants, dungeonType, location, difficulty);
+                        }
+                    } catch (Exception e) {
+                        plugin.getLogger().log(Level.SEVERE, "Error in wave task", e);
+                        this.cancel();
+                        for (Player participant : participants) {
+                            if (participant != null) {
+                                String skill = getPlayerSkill(participant.getUniqueId());
+                                if (skill != null) {
+                                    cleanupPlayerDungeon(participant.getUniqueId(), skill);
+                                }
+                            }
+                        }
+                    }
+                }
+            }.runTaskTimer(plugin, 0L, TimeUtils.parseTimeToTicks(configManager.getWaveDelay()));
+            
+            activeTasks.put(initiatorId, task);
+            
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Error starting waves with difficulty", e);
+            for (Player participant : participants) {
+                if (participant != null) {
+                    String skill = getPlayerSkill(participant.getUniqueId());
+                    if (skill != null) {
+                        cleanupPlayerDungeon(participant.getUniqueId(), skill);
+                    }
+                }
+            }
+        }
+    }
+    
+    private void spawnWaveWithDifficulty(List<Player> participants, String dungeonType, int wave, 
+                                       Location location, PartyManager.DungeonDifficulty difficulty) {
+        if (participants == null || participants.isEmpty() || dungeonType == null || location == null) {
+            plugin.getLogger().warning("Invalid parameters in spawnWaveWithDifficulty");
+            return;
+        }
+        
+        try {
+            Map<String, String> placeholders = new HashMap<>();
+            placeholders.put("wave", String.valueOf(wave));
+            placeholders.put("difficulty", difficulty.getName());
+            
+            String message = languageManager.getMessage("wave-starting", placeholders);
+            for (Player participant : participants) {
+                if (participant != null && participant.isOnline()) {
+                    participant.sendMessage(languageManager.getPrefix() + message);
+                }
+            }
+            
+            // Get mobs for this wave
+            List<String> baseMobs = configManager.getDungeonTypeWaveMobs(dungeonType, wave);
+            
+            if (baseMobs != null && !baseMobs.isEmpty() && integrationManager.isMythicMobsEnabled()) {
+                // Scale mob count based on difficulty
+                int scaledMobCount = (int) Math.ceil(baseMobs.size() * difficulty.getMobMultiplier());
+                List<String> scaledMobs = new ArrayList<>();
+                
+                // Duplicate mobs to reach scaled count
+                for (int i = 0; i < scaledMobCount; i++) {
+                    scaledMobs.add(baseMobs.get(i % baseMobs.size()));
+                }
+                
+                // Find spawn locations for scaled wave
+                List<Location> spawnLocations = spawnManager.findMobSpawnLocations(location, scaledMobs.size());
+                
+                int spawnIndex = 0;
+                for (String mobId : scaledMobs) {
+                    if (mobId != null && !mobId.trim().isEmpty()) {
+                        Location spawnLoc = spawnIndex < spawnLocations.size() ? 
+                            spawnLocations.get(spawnIndex) : location;
+                        spawnMythicMob(mobId, spawnLoc);
+                        spawnIndex++;
+                    }
+                }
+            } else {
+                plugin.getLogger().warning("No mobs configured for wave " + wave + " of dungeon type " + dungeonType);
+            }
+            
+            // Schedule wave completion message
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                try {
+                    Map<String, String> completePlaceholders = new HashMap<>();
+                    completePlaceholders.put("wave", String.valueOf(wave));
+                    
+                    String completeMessage = languageManager.getMessage("wave-completed", completePlaceholders);
+                    for (Player participant : participants) {
+                        if (participant != null && participant.isOnline()) {
+                            participant.sendMessage(languageManager.getPrefix() + completeMessage);
+                        }
+                    }
+                } catch (Exception e) {
+                    plugin.getLogger().log(Level.WARNING, "Error sending wave completion message", e);
+                }
+            }, Math.max(20L, TimeUtils.parseTimeToTicks(configManager.getWaveDelay()) - 20L));
+            
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Error spawning wave with difficulty", e);
+        }
+    }
+    
+    private void spawnBossWithDifficulty(List<Player> participants, String dungeonType, 
+                                       Location location, PartyManager.DungeonDifficulty difficulty) {
+        if (participants == null || participants.isEmpty() || dungeonType == null || location == null) {
+            plugin.getLogger().warning("Invalid parameters in spawnBossWithDifficulty");
+            return;
+        }
+        
+        try {
+            String bossMessage = languageManager.getMessage("boss-incoming");
+            for (Player participant : participants) {
+                if (participant != null && participant.isOnline()) {
+                    participant.sendMessage(languageManager.getPrefix() + bossMessage);
+                }
+            }
+            
+            // Delay before boss spawn
+            String spawnDelay = configManager.getDungeonTypeBossSpawnDelay(dungeonType);
+            long delayTicks = TimeUtils.parseTimeToTicks(spawnDelay);
+            
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                try {
+                    // Check if any participants are still online
+                    List<Player> onlineParticipants = new ArrayList<>();
+                    for (Player participant : participants) {
+                        if (participant != null && participant.isOnline()) {
+                            onlineParticipants.add(participant);
+                        }
+                    }
+                    
+                    if (onlineParticipants.isEmpty()) {
+                        return;
+                    }
+                    
+                    String bossId = configManager.getDungeonTypeBoss(dungeonType);
+                    if (bossId != null && !bossId.trim().isEmpty() && integrationManager.isMythicMobsEnabled()) {
+                        // Find optimal boss spawn location
+                        Location bossSpawnLocation = spawnManager.findBossSpawnLocation(location);
+                        Entity boss = spawnMythicMob(bossId, bossSpawnLocation);
+                        if (boss != null) {
+                            // Initialize damage tracking
+                            Map<UUID, Double> damageMap = new ConcurrentHashMap<>();
+                            for (Player participant : onlineParticipants) {
+                                damageMap.put(participant.getUniqueId(), 0.0);
+                            }
+                            bossDamageTracker.put(boss.getUniqueId(), damageMap);
+                            
+                            Map<String, String> placeholders = new HashMap<>();
+                            placeholders.put("boss", bossId);
+                            placeholders.put("difficulty", difficulty.getName());
+                            String spawnedMessage = languageManager.getMessage("boss-spawned", placeholders);
+                            
+                            for (Player participant : onlineParticipants) {
+                                participant.sendMessage(languageManager.getPrefix() + spawnedMessage);
+                            }
+                        } else {
+                            plugin.getLogger().warning("Failed to spawn boss " + bossId);
+                        }
+                    } else {
+                        plugin.getLogger().warning("No boss configured for dungeon type " + dungeonType);
+                    }
+                } catch (Exception e) {
+                    plugin.getLogger().log(Level.SEVERE, "Error in boss spawn task", e);
+                }
+            }, Math.max(20L, delayTicks));
+            
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Error spawning boss with difficulty", e);
+        }
+    }
+    
+    public String getPlayerSkill(UUID playerId) {
+        // This would need to be implemented to track which skill triggered the dungeon
+        // For now, return a default or check active dungeons
+        for (String skill : configManager.getEnabledSkills()) {
+            if (dataManager.hasActiveDungeon(playerId, skill)) {
+                return skill;
+            }
+        }
+        return null;
+    }
+    
+    public void setPartyDifficulty(UUID initiatorId, PartyManager.DungeonDifficulty difficulty) {
+        if (initiatorId != null && difficulty != null) {
+            playerDifficulty.put(initiatorId, difficulty);
+        }
+    }
+    
+    public String getPlayerDungeonType(UUID playerId) {
+        return playerDungeonType.get(playerId);
+    }
+    
+    public PartyManager getPartyManager() {
+        return partyManager;
     }
     
     public void startDungeon(Player player, String skill, Location bellLocation) {

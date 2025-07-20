@@ -56,6 +56,20 @@ general:
     - "home"
     - "spawn"
 
+# Database Configuration (Optional - for large servers)
+database:
+  enabled: false
+  type: "mysql"  # mysql or postgresql
+  host: "localhost"
+  port: 3306
+  database: "treasuredungeon"
+  username: "root"
+  password: ""
+  ssl: false
+  pool:
+    max-connections: 10
+    min-connections: 2
+
 # Dungeon Types Configuration
 dungeon-types:
   # Each dungeon type has its own schematics and settings

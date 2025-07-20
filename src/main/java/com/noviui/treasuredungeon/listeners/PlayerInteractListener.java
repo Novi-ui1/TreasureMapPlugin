@@ -70,6 +70,7 @@ public class PlayerInteractListener implements Listener {
             
             // Check if it's a bell interaction
             if (event.getClickedBlock() != null && event.getClickedBlock().getType() == Material.BELL) {
+                event.setCancelled(true);
                 handleBellInteraction(player, event.getClickedBlock().getLocation());
             }
             
@@ -226,17 +227,11 @@ public class PlayerInteractListener implements Listener {
         }
         
         try {
-            // Find which skill this bell belongs to
-            String skill = dungeonManager.getBellSkill(player.getUniqueId(), bellLocation);
-            if (skill == null) {
-                return;
-            }
+            // Detect nearby players for party formation
+            dungeonManager.getPartyManager().detectNearbyPlayers(player, bellLocation);
             
-            // Ring the bell and start dungeon
-            String message = languageManager.getMessage("bell-rung");
+            String message = languageManager.getMessage("bell-activated");
             player.sendMessage(languageManager.getPrefix() + message);
-            
-            dungeonManager.startDungeon(player, skill, bellLocation);
             
         } catch (Exception e) {
             plugin.getLogger().log(Level.SEVERE, "Error handling bell interaction for " + player.getName(), e);

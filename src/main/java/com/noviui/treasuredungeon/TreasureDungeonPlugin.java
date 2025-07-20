@@ -5,6 +5,9 @@ import com.noviui.treasuredungeon.config.ConfigManager;
 import com.noviui.treasuredungeon.config.DataManager;
 import com.noviui.treasuredungeon.config.LanguageManager;
 import com.noviui.treasuredungeon.dungeon.DungeonManager;
+import com.noviui.treasuredungeon.dungeon.DungeonBuilder;
+import com.noviui.treasuredungeon.database.DatabaseManager;
+import com.noviui.treasuredungeon.placeholders.PlaceholderManager;
 import com.noviui.treasuredungeon.integration.IntegrationManager;
 import com.noviui.treasuredungeon.listeners.CommandBlockListener;
 import com.noviui.treasuredungeon.listeners.McMMOListener;
@@ -30,6 +33,9 @@ public final class TreasureDungeonPlugin extends JavaPlugin {
     private IntegrationManager integrationManager;
     private MapManager mapManager;
     private DungeonManager dungeonManager;
+    private DungeonBuilder dungeonBuilder;
+    private DatabaseManager databaseManager;
+    private PlaceholderManager placeholderManager;
     private LocationManager locationManager;
     private UpdateChecker updateChecker;
     
@@ -85,6 +91,16 @@ public final class TreasureDungeonPlugin extends JavaPlugin {
                 dungeonManager.cleanup();
             }
             
+            // Cleanup dungeon builder
+            if (dungeonBuilder != null) {
+                dungeonBuilder.cleanup();
+            }
+            
+            // Close database connection
+            if (databaseManager != null) {
+                databaseManager.close();
+            }
+            
             // Clear caches
             if (locationManager != null) {
                 locationManager.clearCache();
@@ -105,6 +121,8 @@ public final class TreasureDungeonPlugin extends JavaPlugin {
             this.integrationManager = new IntegrationManager(this);
             this.mapManager = new MapManager(this);
             this.dungeonManager = new DungeonManager(this);
+            this.dungeonBuilder = new DungeonBuilder(this);
+            this.databaseManager = new DatabaseManager(this);
             this.locationManager = new LocationManager(this);
             this.updateChecker = new UpdateChecker(this);
         } catch (Exception e) {
@@ -119,6 +137,19 @@ public final class TreasureDungeonPlugin extends JavaPlugin {
                 dataManager.loadData();
                 languageManager.loadLanguage();
                 integrationManager.checkIntegrations();
+                
+                // Initialize database if enabled
+                databaseManager.initialize().thenAccept(success -> {
+                    if (success) {
+                        getLogger().info("Database initialized successfully");
+                    }
+                });
+                
+                // Initialize PlaceholderAPI if available
+                if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+                    placeholderManager = new PlaceholderManager(this);
+                    placeholderManager.register();
+                }
             } catch (Exception e) {
                 throw new RuntimeException("Failed to load configurations", e);
             }
@@ -218,6 +249,12 @@ public final class TreasureDungeonPlugin extends JavaPlugin {
                 dataManager.loadData();
                 languageManager.loadLanguage();
                 integrationManager.checkIntegrations();
+                
+                // Reinitialize database if enabled
+                if (databaseManager != null) {
+                    databaseManager.initialize();
+                }
+                
                 locationManager.clearCache();
             } catch (Exception e) {
                 throw new RuntimeException("Failed to reload plugin", e);
@@ -266,6 +303,14 @@ public final class TreasureDungeonPlugin extends JavaPlugin {
     
     public DungeonManager getDungeonManager() {
         return dungeonManager;
+    }
+    
+    public DungeonBuilder getDungeonBuilder() {
+        return dungeonBuilder;
+    }
+    
+    public DatabaseManager getDatabaseManager() {
+        return databaseManager;
     }
     
     public LocationManager getLocationManager() {

@@ -30,7 +30,16 @@ messages:
   
   # Dungeon events
   bell-found: "&6You found an ancient bell! Right-click to ring it..."
-  bell-rung: "&6The bell rang... something is awakening!"
+  bell-activated: "&6The bell resonates with ancient power..."
+  party-formed: "&eParty formed with {party_size} members! Dungeon starting in {countdown} seconds..."
+  dungeon-countdown: "&6Dungeon begins in {countdown} seconds! Stay close to the bell!"
+  countdown-tick: "&e{seconds} seconds remaining..."
+  difficulty-scaled: "&6Difficulty: {difficulty} &7(Party: {party_size}, Mobs: x{mob_multiplier}, Boss: x{boss_multiplier})"
+  dungeon-building: "&6The ancient magic is constructing your dungeon..."
+  dungeon-build-complete: "&aYour dungeon is ready! Prepare for battle!"
+  dungeon-build-failed: "&cFailed to construct dungeon. Please try again."
+  dungeon-destroying: "&6The dungeon is collapsing..."
+  dungeon-destroyed: "&7The dungeon has been completely destroyed."
   dungeon-started: "&cThe dungeon has begun! Prepare for battle!"
   
   # Waves

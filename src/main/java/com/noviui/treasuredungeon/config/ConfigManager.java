@@ -103,6 +103,47 @@ public class ConfigManager {
         return config.getBoolean("general.check-updates", true);
     }
     
+    // Database settings
+    public boolean isDatabaseEnabled() {
+        return config.getBoolean("database.enabled", false);
+    }
+    
+    public String getDatabaseType() {
+        return config.getString("database.type", "mysql");
+    }
+    
+    public String getDatabaseHost() {
+        return config.getString("database.host", "localhost");
+    }
+    
+    public int getDatabasePort() {
+        return config.getInt("database.port", 3306);
+    }
+    
+    public String getDatabaseName() {
+        return config.getString("database.database", "treasuredungeon");
+    }
+    
+    public String getDatabaseUsername() {
+        return config.getString("database.username", "root");
+    }
+    
+    public String getDatabasePassword() {
+        return config.getString("database.password", "");
+    }
+    
+    public boolean isDatabaseSSL() {
+        return config.getBoolean("database.ssl", false);
+    }
+    
+    public int getDatabaseMaxConnections() {
+        return config.getInt("database.pool.max-connections", 10);
+    }
+    
+    public int getDatabaseMinConnections() {
+        return config.getInt("database.pool.min-connections", 2);
+    }
+    
     public List<String> getBlockedCommands() {
         return config.getStringList("general.blocked-commands");
     }

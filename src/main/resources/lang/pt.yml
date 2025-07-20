@@ -30,7 +30,16 @@ messages:
   
   # Eventos da dungeon
   bell-found: "&6Encontraste um sino antigo! Clica direito para tocá-lo..."
-  bell-rung: "&6O sino tocou... algo está a despertar!"
+  bell-activated: "&6O sino ressoa com poder antigo..."
+  party-formed: "&eGrupo formado com {party_size} membros! Dungeon a começar em {countdown} segundos..."
+  dungeon-countdown: "&6Dungeon começa em {countdown} segundos! Mantém-te perto do sino!"
+  countdown-tick: "&e{seconds} segundos restantes..."
+  difficulty-scaled: "&6Dificuldade: {difficulty} &7(Grupo: {party_size}, Mobs: x{mob_multiplier}, Boss: x{boss_multiplier})"
+  dungeon-building: "&6A magia antiga está a construir a tua dungeon..."
+  dungeon-build-complete: "&aA tua dungeon está pronta! Prepara-te para a batalha!"
+  dungeon-build-failed: "&cFalhou ao construir dungeon. Tenta novamente."
+  dungeon-destroying: "&6A dungeon está a colapsar..."
+  dungeon-destroyed: "&7A dungeon foi completamente destruída."
   dungeon-started: "&cA dungeon começou! Prepara-te para a batalha!"
   
   # Ondas
