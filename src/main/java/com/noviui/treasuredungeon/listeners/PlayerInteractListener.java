@@ -92,8 +92,19 @@ public class PlayerInteractListener implements Listener {
         int z = ThreadLocalRandom.current().nextInt(minZ, maxZ + 1);
         int y = treasureWorld.getHighestBlockYAt(x, z) + 1;
         
+        // Select random dungeon type
+        String dungeonType = dungeonManager.selectRandomDungeonType();
+        if (dungeonType == null) {
+            String message = "§cNo dungeon types configured!";
+            player.sendMessage(languageManager.getPrefix() + message);
+            return;
+        }
+        
         // Store coordinates in data
-        dataManager.setActiveDungeon(player.getUniqueId(), skill, worldName, x, y, z);
+        dataManager.setActiveDungeon(player.getUniqueId(), skill, worldName, x, y, z, dungeonType);
+        
+        // Store dungeon type for this player
+        dungeonManager.setPlayerDungeonType(player.getUniqueId(), dungeonType);
         
         // Teleport player to treasure world spawn
         Location spawnLocation = new Location(treasureWorld, 

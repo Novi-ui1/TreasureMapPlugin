@@ -12,6 +12,7 @@ messages:
   # Dar mapa
   map-given-global: "&e{player} recebeu um mapa do tesouro pela skill {skill}!"
   map-given-private: "&aRecebeste um mapa do tesouro da skill {skill}!"
+  map-given-private-with-type: "&aRecebeste um mapa do tesouro da skill {skill}! &7(Dungeon: {dungeon_type})"
   map-already-exists: "&cJá existe um mapa do tesouro para esta skill!"
   
   # Teleporte

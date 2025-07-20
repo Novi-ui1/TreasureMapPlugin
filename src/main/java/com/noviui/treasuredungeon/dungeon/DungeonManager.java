@@ -20,6 +20,7 @@ import org.bukkit.scheduler.BukkitTask;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class DungeonManager {
     
@@ -31,6 +32,7 @@ public class DungeonManager {
     
     // Active dungeons tracking
     private final Map<UUID, String> playerActiveDungeon = new ConcurrentHashMap<>();
+    private final Map<UUID, String> playerDungeonType = new ConcurrentHashMap<>();
     private final Map<UUID, Map<String, Location>> playerBellLocations = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, Double>> bossDamageTracker = new ConcurrentHashMap<>();
     private final Map<UUID, BukkitTask> activeTasks = new ConcurrentHashMap<>();
@@ -50,7 +52,13 @@ public class DungeonManager {
         bellLocation.getBlock().setType(Material.AIR);
         
         // Load dungeon schematic
-        String dungeonSchematic = configManager.getSkillDungeonSchematic(skill);
+        String dungeonType = playerDungeonType.get(playerId);
+        if (dungeonType == null) {
+            plugin.getLogger().warning("No dungeon type found for player " + player.getName());
+            return;
+        }
+        
+        String dungeonSchematic = configManager.getDungeonTypeDungeonSchematic(dungeonType);
         if (dungeonSchematic != null && integrationManager.isWorldEditEnabled()) {
             loadSchematic(dungeonSchematic, bellLocation);
         }
@@ -67,8 +75,14 @@ public class DungeonManager {
     }
     
     private void startWaves(Player player, String skill, Location location) {
-        int waveCount = configManager.getSkillWaveCount(skill);
         UUID playerId = player.getUniqueId();
+        String dungeonType = playerDungeonType.get(playerId);
+        if (dungeonType == null) {
+            plugin.getLogger().warning("No dungeon type found for player " + player.getName());
+            return;
+        }
+        
+        int waveCount = configManager.getDungeonTypeWaveCount(dungeonType);
         
         BukkitTask task = new BukkitRunnable() {
             int currentWave = 1;
@@ -76,12 +90,12 @@ public class DungeonManager {
             @Override
             public void run() {
                 if (currentWave <= waveCount) {
-                    spawnWave(player, skill, currentWave, location);
+                    spawnWave(player, dungeonType, currentWave, location);
                     currentWave++;
                 } else {
                     // All waves completed, spawn boss
                     this.cancel();
-                    spawnBoss(player, skill, location);
+                    spawnBoss(player, dungeonType, location);
                 }
             }
         }.runTaskTimer(plugin, 0L, TimeUtils.parseTimeToTicks(configManager.getWaveDelay()));
@@ -89,7 +103,7 @@ public class DungeonManager {
         activeTasks.put(playerId, task);
     }
     
-    private void spawnWave(Player player, String skill, int wave, Location location) {
+    private void spawnWave(Player player, String dungeonType, int wave, Location location) {
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("wave", String.valueOf(wave));
         
@@ -97,7 +111,7 @@ public class DungeonManager {
         player.sendMessage(languageManager.getPrefix() + message);
         
         // Get mobs for this wave
-        List<String> mobs = configManager.getSkillWaveMobs(skill, wave);
+        List<String> mobs = configManager.getDungeonTypeWaveMobs(dungeonType, wave);
         
         if (mobs != null && !mobs.isEmpty() && integrationManager.isMythicMobsEnabled()) {
             for (String mobId : mobs) {
@@ -112,16 +126,16 @@ public class DungeonManager {
         }, TimeUtils.parseTimeToTicks(configManager.getWaveDelay()) - 20L);
     }
     
-    private void spawnBoss(Player player, String skill, Location location) {
+    private void spawnBoss(Player player, String dungeonType, Location location) {
         String bossMessage = languageManager.getMessage("boss-incoming");
         player.sendMessage(languageManager.getPrefix() + bossMessage);
         
         // Delay before boss spawn
-        String spawnDelay = configManager.getSkillBossSpawnDelay(skill);
+        String spawnDelay = configManager.getDungeonTypeBossSpawnDelay(dungeonType);
         long delayTicks = TimeUtils.parseTimeToTicks(spawnDelay);
         
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            String bossId = configManager.getSkillBoss(skill);
+            String bossId = configManager.getDungeonTypeBoss(dungeonType);
             if (bossId != null && integrationManager.isMythicMobsEnabled()) {
                 Entity boss = spawnMythicMob(bossId, location);
                 if (boss != null) {
@@ -230,12 +244,12 @@ public class DungeonManager {
         // Place chest
         location.getBlock().setType(Material.CHEST);
         
-        String skill = playerActiveDungeon.get(player.getUniqueId());
-        if (skill != null) {
+        String dungeonType = playerDungeonType.get(player.getUniqueId());
+        if (dungeonType != null) {
             // Execute loot commands
-            String lootType = configManager.getSkillLootType(skill);
+            String lootType = configManager.getDungeonTypeLootType(dungeonType);
             if ("commands".equals(lootType)) {
-                List<String> commands = configManager.getSkillLootCommands(skill);
+                List<String> commands = configManager.getDungeonTypeLootCommands(dungeonType);
                 if (commands != null) {
                     for (String command : commands) {
                         String processedCommand = command.replace("{player}", player.getName());
@@ -265,6 +279,7 @@ public class DungeonManager {
         
         // Clear active dungeon
         playerActiveDungeon.remove(playerId);
+        playerDungeonType.remove(playerId);
         dataManager.clearActiveDungeon(playerId, skill);
         
         // Cancel any active tasks
@@ -324,6 +339,47 @@ public class DungeonManager {
         return null;
     }
     
+    public String selectRandomDungeonType() {
+        Set<String> dungeonTypes = configManager.getDungeonTypes();
+        if (dungeonTypes.isEmpty()) {
+            return null;
+        }
+        
+        // Calculate total weight
+        int totalWeight = 0;
+        Map<String, Integer> weights = new HashMap<>();
+        
+        for (String dungeonType : dungeonTypes) {
+            int weight = configManager.getDungeonTypeWeight(dungeonType);
+            weights.put(dungeonType, weight);
+            totalWeight += weight;
+        }
+        
+        if (totalWeight == 0) {
+            // Fallback to equal probability
+            List<String> typeList = new ArrayList<>(dungeonTypes);
+            return typeList.get(ThreadLocalRandom.current().nextInt(typeList.size()));
+        }
+        
+        // Weighted random selection
+        int randomValue = ThreadLocalRandom.current().nextInt(totalWeight);
+        int currentWeight = 0;
+        
+        for (Map.Entry<String, Integer> entry : weights.entrySet()) {
+            currentWeight += entry.getValue();
+            if (randomValue < currentWeight) {
+                return entry.getKey();
+            }
+        }
+        
+        // Fallback (should never reach here)
+        return dungeonTypes.iterator().next();
+    }
+    
+    public void setPlayerDungeonType(UUID playerId, String dungeonType) {
+        playerDungeonType.put(playerId, dungeonType);
+    }
+    
     public void addBossDamage(UUID bossId, UUID playerId, double damage) {
         Map<UUID, Double> damageMap = bossDamageTracker.get(bossId);
         if (damageMap != null) {
@@ -338,6 +394,7 @@ public class DungeonManager {
         
         // Clear all tracking data
         playerActiveDungeon.clear();
+        playerDungeonType.clear();
         playerBellLocations.clear();
         bossDamageTracker.clear();
     }

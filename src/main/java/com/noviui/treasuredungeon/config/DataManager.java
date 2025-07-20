@@ -91,13 +91,14 @@ public class DataManager {
     }
     
     // Active dungeon methods
-    public void setActiveDungeon(UUID playerId, String skill, String world, int x, int y, int z) {
+    public void setActiveDungeon(UUID playerId, String skill, String world, int x, int y, int z, String dungeonType) {
         String basePath = "players." + playerId.toString() + "." + skill + ".active-dungeon";
         dataConfig.set(basePath + ".world", world);
         dataConfig.set(basePath + ".coords.x", x);
         dataConfig.set(basePath + ".coords.y", y);
         dataConfig.set(basePath + ".coords.z", z);
         dataConfig.set(basePath + ".status", "in-progress");
+        dataConfig.set(basePath + ".dungeon-type", dungeonType);
         saveData();
     }
     
@@ -118,6 +119,11 @@ public class DataManager {
         int y = dataConfig.getInt(basePath + ".y", 64);
         int z = dataConfig.getInt(basePath + ".z", 0);
         return new int[]{x, y, z};
+    }
+    
+    public String getDungeonType(UUID playerId, String skill) {
+        String path = "players." + playerId.toString() + "." + skill + ".active-dungeon.dungeon-type";
+        return dataConfig.getString(path);
     }
     
     public FileConfiguration getDataConfig() {

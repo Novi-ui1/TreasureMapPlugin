@@ -12,6 +12,7 @@ messages:
   # Map giving
   map-given-global: "&e{player} received a treasure map for {skill} skill!"
   map-given-private: "&aYou received a treasure map for {skill} skill!"
+  map-given-private-with-type: "&aYou received a treasure map for {skill} skill! &7(Dungeon: {dungeon_type})"
   map-already-exists: "&cA treasure map for this skill already exists!"
   
   # Teleporting

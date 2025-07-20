@@ -53,6 +53,111 @@ general:
     - "home"
     - "spawn"
 
+# Dungeon Types Configuration
+dungeon-types:
+  # Each dungeon type has its own schematics and settings
+  ancient_mine:
+    weight: 30  # Higher weight = more likely to be selected
+    schematic-bell: "bell-ancient-mine.schem"
+    schematic-dungeon: "ancient-mine-dungeon.schem"
+    waves:
+      count: 3
+      mobs:
+        wave1: [ "SKELETON_MINER", "ZOMBIE_DIGGER" ]
+        wave2: [ "CAVE_SPIDER_ELITE", "SKELETON_MINER" ]
+        wave3: [ "UNDEAD_DWARF", "CRYSTAL_GOLEM" ]
+    boss:
+      id: "MINING_OVERLORD"
+      spawn-delay: 8s
+    loot:
+      type: "commands"
+      commands:
+        - "give {player} diamond 16"
+        - "give {player} emerald 8"
+        - "eco give {player} 1000"
+  
+  cursed_forest:
+    weight: 25
+    schematic-bell: "bell-cursed-forest.schem"
+    schematic-dungeon: "cursed-forest-dungeon.schem"
+    waves:
+      count: 2
+      mobs:
+        wave1: [ "FOREST_GUARDIAN", "ANGRY_TREANT" ]
+        wave2: [ "BARK_BEAST", "LEAF_SPRITE" ]
+    boss:
+      id: "ANCIENT_TREANT"
+      spawn-delay: 10s
+    loot:
+      type: "commands"
+      commands:
+        - "give {player} oak_log 64"
+        - "give {player} golden_apple 4"
+        - "eco give {player} 800"
+  
+  frozen_cavern:
+    weight: 20
+    schematic-bell: "bell-frozen-cavern.schem"
+    schematic-dungeon: "frozen-cavern-dungeon.schem"
+    waves:
+      count: 4
+      mobs:
+        wave1: [ "ICE_SKELETON", "FROST_SPIDER" ]
+        wave2: [ "FROZEN_ZOMBIE", "ICE_SKELETON" ]
+        wave3: [ "FROST_GOLEM", "ICE_WRAITH" ]
+        wave4: [ "BLIZZARD_ELEMENTAL", "FROST_GOLEM" ]
+    boss:
+      id: "FROST_KING"
+      spawn-delay: 12s
+    loot:
+      type: "commands"
+      commands:
+        - "give {player} ice 32"
+        - "give {player} diamond_sword 1"
+        - "eco give {player} 1200"
+  
+  desert_tomb:
+    weight: 15
+    schematic-bell: "bell-desert-tomb.schem"
+    schematic-dungeon: "desert-tomb-dungeon.schem"
+    waves:
+      count: 3
+      mobs:
+        wave1: [ "MUMMY_WARRIOR", "SAND_SPIDER" ]
+        wave2: [ "DESERT_GUARDIAN", "MUMMY_WARRIOR" ]
+        wave3: [ "ANUBIS_GUARD", "PHARAOH_SPIRIT" ]
+    boss:
+      id: "PHARAOH_KING"
+      spawn-delay: 15s
+    loot:
+      type: "commands"
+      commands:
+        - "give {player} gold_ingot 24"
+        - "give {player} enchanted_golden_apple 2"
+        - "eco give {player} 1500"
+  
+  volcanic_depths:
+    weight: 10
+    schematic-bell: "bell-volcanic-depths.schem"
+    schematic-dungeon: "volcanic-depths-dungeon.schem"
+    waves:
+      count: 5
+      mobs:
+        wave1: [ "LAVA_SLIME", "FIRE_SKELETON" ]
+        wave2: [ "MAGMA_GOLEM", "LAVA_SLIME" ]
+        wave3: [ "FIRE_ELEMENTAL", "MAGMA_GOLEM" ]
+        wave4: [ "INFERNO_BEAST", "FIRE_ELEMENTAL" ]
+        wave5: [ "VOLCANIC_TITAN", "INFERNO_BEAST" ]
+    boss:
+      id: "VOLCANO_LORD"
+      spawn-delay: 20s
+    loot:
+      type: "commands"
+      commands:
+        - "give {player} netherite_ingot 4"
+        - "give {player} ancient_debris 8"
+        - "eco give {player} 2000"
+
 # Skills Configuration
 skills:
   mining:
@@ -60,20 +165,6 @@ skills:
     level-required: 1000
     chance-to-drop: 0.3  # 30%
     cooldown: "6h"
-    
-    # Dungeon settings
-    dungeon:
-      schematic-bell: "bell-mining.schem"
-      schematic-dungeon: "mining-dungeon.schem"
-      waves:
-        count: 3
-        mobs:
-          wave1: [ "SKELETON_MINER", "ZOMBIE_DIGGER" ]
-          wave2: [ "CAVE_SPIDER_ELITE", "SKELETON_MINER" ]
-          wave3: [ "UNDEAD_DWARF", "CRYSTAL_GOLEM" ]
-      boss:
-        id: "MINING_OVERLORD"
-        spawn-delay: 8s
     
     # Map item configuration
     map-item:
@@ -86,32 +177,12 @@ skills:
         - "&aClique direito para usar"
       custom-model-data: 1031
       glowing: true
-    
-    # Loot configuration
-    loot:
-      type: "commands"  # "commands" or "items"
-      commands:
-        - "give {player} diamond 16"
-        - "give {player} emerald 8"
-        - "eco give {player} 1000"
   
   woodcutting:
     enabled: true
     level-required: 1000
     chance-to-drop: 0.25
     cooldown: "6h"
-    
-    dungeon:
-      schematic-bell: "bell-wood.schem"
-      schematic-dungeon: "wood-dungeon.schem"
-      waves:
-        count: 2
-        mobs:
-          wave1: [ "FOREST_GUARDIAN", "ANGRY_TREANT" ]
-          wave2: [ "BARK_BEAST", "LEAF_SPRITE" ]
-      boss:
-        id: "ANCIENT_TREANT"
-        spawn-delay: 10s
     
     map-item:
       material: FILLED_MAP
@@ -123,13 +194,6 @@ skills:
         - "&aClique direito para usar"
       custom-model-data: 1032
       glowing: true
-    
-    loot:
-      type: "commands"
-      commands:
-        - "give {player} oak_log 64"
-        - "give {player} golden_apple 4"
-        - "eco give {player} 800"
 
   # Add more skills as needed
   # fishing, excavation, herbalism, etc.

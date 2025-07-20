@@ -175,6 +175,50 @@ public class ConfigManager {
         return config.getStringList("skills." + skill + ".loot.commands");
     }
     
+    // Dungeon types settings
+    public Set<String> getDungeonTypes() {
+        if (config.getConfigurationSection("dungeon-types") == null) {
+            return new HashSet<>();
+        }
+        return config.getConfigurationSection("dungeon-types").getKeys(false);
+    }
+    
+    public int getDungeonTypeWeight(String dungeonType) {
+        return config.getInt("dungeon-types." + dungeonType + ".weight", 1);
+    }
+    
+    public String getDungeonTypeBellSchematic(String dungeonType) {
+        return config.getString("dungeon-types." + dungeonType + ".schematic-bell");
+    }
+    
+    public String getDungeonTypeDungeonSchematic(String dungeonType) {
+        return config.getString("dungeon-types." + dungeonType + ".schematic-dungeon");
+    }
+    
+    public int getDungeonTypeWaveCount(String dungeonType) {
+        return config.getInt("dungeon-types." + dungeonType + ".waves.count", 2);
+    }
+    
+    public List<String> getDungeonTypeWaveMobs(String dungeonType, int wave) {
+        return config.getStringList("dungeon-types." + dungeonType + ".waves.mobs.wave" + wave);
+    }
+    
+    public String getDungeonTypeBoss(String dungeonType) {
+        return config.getString("dungeon-types." + dungeonType + ".boss.id");
+    }
+    
+    public String getDungeonTypeBossSpawnDelay(String dungeonType) {
+        return config.getString("dungeon-types." + dungeonType + ".boss.spawn-delay", "8s");
+    }
+    
+    public String getDungeonTypeLootType(String dungeonType) {
+        return config.getString("dungeon-types." + dungeonType + ".loot.type", "commands");
+    }
+    
+    public List<String> getDungeonTypeLootCommands(String dungeonType) {
+        return config.getStringList("dungeon-types." + dungeonType + ".loot.commands");
+    }
+    
     public FileConfiguration getConfig() {
         return config;
     }

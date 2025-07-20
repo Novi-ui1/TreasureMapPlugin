@@ -75,8 +75,15 @@ public class ProximityListener implements Listener {
     }
     
     private void spawnBell(Player player, String skill, Location location) {
+        // Get the dungeon type for this player
+        String dungeonType = dataManager.getDungeonType(player.getUniqueId(), skill);
+        if (dungeonType == null) {
+            plugin.getLogger().warning("No dungeon type found for player " + player.getName() + " skill " + skill);
+            return;
+        }
+        
         // Load bell schematic
-        String bellSchematic = configManager.getSkillBellSchematic(skill);
+        String bellSchematic = configManager.getDungeonTypeBellSchematic(dungeonType);
         if (bellSchematic != null && plugin.getIntegrationManager().isWorldEditEnabled()) {
             dungeonManager.loadSchematic(bellSchematic, location);
         } else {

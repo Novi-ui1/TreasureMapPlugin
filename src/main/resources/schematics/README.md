@@ -2,24 +2,46 @@
 
 Place your WorldEdit schematic files (.schem) in this directory.
 
-## Required Schematics
+## Dungeon Type Schematics
 
-For each skill configured in `config.yml`, you need:
+For each dungeon type configured in `config.yml`, you need:
 
 1. **Bell Schematic** - Small structure containing a bell
-   - Example: `bell-mining.schem`
+   - Example: `bell-ancient-mine.schem`
    - Should contain a bell block that players can interact with
 
 2. **Dungeon Schematic** - Main dungeon structure
-   - Example: `mining-dungeon.schem`
+   - Example: `ancient-mine-dungeon.schem`
    - Can include spawn points for mobs and boss
    - Should be appropriately sized for combat
 
 ## Naming Convention
 
-Follow the naming pattern defined in your config.yml:
-- `skills.{skill-name}.dungeon.schematic-bell`
-- `skills.{skill-name}.dungeon.schematic-dungeon`
+Follow the naming pattern defined in your config.yml under `dungeon-types`:
+- `dungeon-types.{type-name}.schematic-bell`
+- `dungeon-types.{type-name}.schematic-dungeon`
+
+## Available Dungeon Types (Default Configuration)
+
+1. **Ancient Mine** (Weight: 30)
+   - `bell-ancient-mine.schem`
+   - `ancient-mine-dungeon.schem`
+
+2. **Cursed Forest** (Weight: 25)
+   - `bell-cursed-forest.schem`
+   - `cursed-forest-dungeon.schem`
+
+3. **Frozen Cavern** (Weight: 20)
+   - `bell-frozen-cavern.schem`
+   - `frozen-cavern-dungeon.schem`
+
+4. **Desert Tomb** (Weight: 15)
+   - `bell-desert-tomb.schem`
+   - `desert-tomb-dungeon.schem`
+
+5. **Volcanic Depths** (Weight: 10)
+   - `bell-volcanic-depths.schem`
+   - `volcanic-depths-dungeon.schem`
 
 ## Creating Schematics
 
