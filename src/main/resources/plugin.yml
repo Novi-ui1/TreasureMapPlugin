@@ -1,0 +1,32 @@
+name: TreasureDungeon
+version: '${project.version}'
+main: com.noviui.treasuredungeon.TreasureDungeonPlugin
+api-version: '1.21'
+prefix: TreasureDungeon
+authors: [ Novi-ui ]
+description: Treasure Dungeons via mcMMO Skills for Paper 1.21.4
+website: https://github.com/novi-ui/treasuredungeon
+
+depend: [ mcMMO ]
+softdepend: [ WorldEdit, MythicMobs, Multiverse-Core ]
+
+commands:
+  treasure:
+    description: Main treasure dungeon command
+    usage: /<command> [tp|reload]
+    permission: treasure.use
+    aliases: [ td, treasuredungeon ]
+
+permissions:
+  treasure.use:
+    description: Basic treasure command usage
+    default: true
+  treasure.tp:
+    description: Teleport to treasure spawn
+    default: op
+  treasure.admin:
+    description: Administrative commands
+    default: op
+  treasure.reload:
+    description: Reload plugin configuration
+    default: op

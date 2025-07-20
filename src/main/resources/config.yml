@@ -1,0 +1,135 @@
+# ====================================
+# Treasure Dungeon Plugin Configuration
+# by Novi-ui
+# ====================================
+
+# General Settings
+general:
+  # Enable debug messages
+  debug: false
+  
+  # Language file to use
+  language: "en"
+  
+  # Treasure world settings
+  treasure-world:
+    name: "treasure_world"
+    spawn:
+      x: 0
+      y: -60
+      z: 0
+    # Coordinate limits for treasure generation
+    limits:
+      min-x: -1000
+      max-x: 1000
+      min-z: -1000
+      max-z: 1000
+    # Minimum distance between treasure locations
+    min-distance: 50
+  
+  # Wave and boss settings
+  waves:
+    delay-between-waves: 10s
+    delay-before-boss: 15s
+  
+  # Chest settings
+  chest:
+    timeout: 5m
+    auto-destroy: true
+  
+  # Damage tracking for boss fights
+  damage-tracking:
+    enabled: true
+    show-duration: 30s
+    show-personal-damage: true
+  
+  # Global announcements
+  announce-globally: true
+  
+  # Block certain commands in treasure world
+  blocked-commands:
+    - "tpa"
+    - "tpahere"
+    - "home"
+    - "spawn"
+
+# Skills Configuration
+skills:
+  mining:
+    enabled: true
+    level-required: 1000
+    chance-to-drop: 0.3  # 30%
+    cooldown: "6h"
+    
+    # Dungeon settings
+    dungeon:
+      schematic-bell: "bell-mining.schem"
+      schematic-dungeon: "mining-dungeon.schem"
+      waves:
+        count: 3
+        mobs:
+          wave1: [ "SKELETON_MINER", "ZOMBIE_DIGGER" ]
+          wave2: [ "CAVE_SPIDER_ELITE", "SKELETON_MINER" ]
+          wave3: [ "UNDEAD_DWARF", "CRYSTAL_GOLEM" ]
+      boss:
+        id: "MINING_OVERLORD"
+        spawn-delay: 8s
+    
+    # Map item configuration
+    map-item:
+      material: FILLED_MAP
+      display-name: "&6Mapa do Tesouro [Mineração]"
+      lore:
+        - "&7Um velho mapa marcado por explosões."
+        - "&eUsa para descobrir uma mina escondida!"
+        - ""
+        - "&aClique direito para usar"
+      custom-model-data: 1031
+      glowing: true
+    
+    # Loot configuration
+    loot:
+      type: "commands"  # "commands" or "items"
+      commands:
+        - "give {player} diamond 16"
+        - "give {player} emerald 8"
+        - "eco give {player} 1000"
+  
+  woodcutting:
+    enabled: true
+    level-required: 1000
+    chance-to-drop: 0.25
+    cooldown: "6h"
+    
+    dungeon:
+      schematic-bell: "bell-wood.schem"
+      schematic-dungeon: "wood-dungeon.schem"
+      waves:
+        count: 2
+        mobs:
+          wave1: [ "FOREST_GUARDIAN", "ANGRY_TREANT" ]
+          wave2: [ "BARK_BEAST", "LEAF_SPRITE" ]
+      boss:
+        id: "ANCIENT_TREANT"
+        spawn-delay: 10s
+    
+    map-item:
+      material: FILLED_MAP
+      display-name: "&2Mapa do Tesouro [Lenhador]"
+      lore:
+        - "&7Um mapa antigo com folhas prensadas."
+        - "&aUsa para encontrar uma floresta mística!"
+        - ""
+        - "&aClique direito para usar"
+      custom-model-data: 1032
+      glowing: true
+    
+    loot:
+      type: "commands"
+      commands:
+        - "give {player} oak_log 64"
+        - "give {player} golden_apple 4"
+        - "eco give {player} 800"
+
+  # Add more skills as needed
+  # fishing, excavation, herbalism, etc.

@@ -1,0 +1,66 @@
+# ====================================
+# Portuguese Language File
+# ====================================
+
+messages:
+  # Geral
+  prefix: "&8[&6TreasureDungeon&8]&r "
+  reload-success: "&aConfiguração recarregada com sucesso!"
+  no-permission: "&cNão tens permissão para usar este comando!"
+  player-only: "&cEste comando só pode ser usado por jogadores!"
+  
+  # Dar mapa
+  map-given-global: "&e{player} recebeu um mapa do tesouro pela skill {skill}!"
+  map-given-private: "&aRecebeste um mapa do tesouro da skill {skill}!"
+  map-already-exists: "&cJá existe um mapa do tesouro para esta skill!"
+  
+  # Teleporte
+  teleporting: "&aA viajar para a terra dos tesouros..."
+  teleport-success: "&aForte teleportado para o spawn dos tesouros!"
+  world-not-found: "&cO mundo dos tesouros não está carregado!"
+  
+  # Cooldown
+  cooldown-active: "&cTens de esperar {cooldown} antes de tentares outra vez!"
+  
+  # Uso do mapa
+  map-used: "&aUsaste o mapa do tesouro! Segue as coordenadas..."
+  coordinates-set: "&eCoordenadas: X: {x}, Z: {z}"
+  approaching-treasure: "&6Estás a aproximar-te da localização do tesouro..."
+  
+  # Eventos da dungeon
+  bell-found: "&6Encontraste um sino antigo! Clica direito para tocá-lo..."
+  bell-rung: "&6O sino tocou... algo está a despertar!"
+  dungeon-started: "&cA dungeon começou! Prepara-te para a batalha!"
+  
+  # Ondas
+  wave-starting: "&eOnda {wave} está a começar!"
+  wave-completed: "&aOnda {wave} completada!"
+  boss-incoming: "&4O boss está a aproximar-se..."
+  boss-spawned: "&4{boss} apareceu!"
+  
+  # Combate
+  boss-defeated: "&aDerrotaste o boss! Um baú do tesouro aparece..."
+  chest-spawned: "&6Um baú do tesouro apareceu com as tuas recompensas!"
+  chest-cleared: "&eO baú do tesouro desapareceu."
+  chest-timeout: "&cO baú do tesouro expirou e desapareceu!"
+  
+  # Ranking de dano
+  damage-ranking-title: "&6&l🏆 Top Damage Dealers:"
+  damage-ranking-entry: "&e{position}. {player} &7- &c{damage} de dano"
+  personal-damage: "&7📊 O teu dano: &c{damage}"
+  
+  # Erros
+  skill-disabled: "&cEssa skill está desativada para mapas do tesouro!"
+  dungeon-in-progress: "&cJá tens uma dungeon ativa!"
+  no-mythicmobs: "&cMythicMobs é necessário para esta funcionalidade!"
+  no-worldedit: "&cWorldEdit é necessário para carregar schematics!"
+  schematic-not-found: "&cFicheiro schematic não encontrado: {schematic}"
+  
+  # Comandos
+  command-help:
+    - "&6&lComandos Treasure Dungeon:"
+    - "&e/treasure tp &7- Teleportar para spawn dos tesouros"
+    - "&e/treasure reload &7- Recarregar configuração"
+  
+  command-tp-usage: "&eUso: /treasure tp"
+  command-reload-usage: "&eUso: /treasure reload"

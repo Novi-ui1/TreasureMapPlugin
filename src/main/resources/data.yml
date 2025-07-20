@@ -1,0 +1,17 @@
+# ====================================
+# Player Data Storage
+# ====================================
+
+players:
+  # Example player data structure:
+  # 278acf90-xxxx-xxxx-xxxx-xxxxxxxxxxxx:
+  #   mining:
+  #     received: true
+  #     cooldown-expires: "2025-07-23T12:00:00Z"
+  #     active-dungeon:
+  #       world: "treasure_world"
+  #       coords:
+  #         x: 234
+  #         y: 78
+  #         z: -120
+  #       status: "in-progress"  # "in-progress", "completed", "failed"

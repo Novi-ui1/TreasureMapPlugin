@@ -1,0 +1,66 @@
+# ====================================
+# English Language File
+# ====================================
+
+messages:
+  # General
+  prefix: "&8[&6TreasureDungeon&8]&r "
+  reload-success: "&aConfiguration reloaded successfully!"
+  no-permission: "&cYou don't have permission to use this command!"
+  player-only: "&cThis command can only be used by players!"
+  
+  # Map giving
+  map-given-global: "&e{player} received a treasure map for {skill} skill!"
+  map-given-private: "&aYou received a treasure map for {skill} skill!"
+  map-already-exists: "&cA treasure map for this skill already exists!"
+  
+  # Teleporting
+  teleporting: "&aTeleporting to the treasure realm..."
+  teleport-success: "&aYou have been teleported to the treasure spawn!"
+  world-not-found: "&cThe treasure world is not loaded!"
+  
+  # Cooldown
+  cooldown-active: "&cYou must wait {cooldown} before trying again!"
+  
+  # Map usage
+  map-used: "&aYou used the treasure map! Follow the coordinates..."
+  coordinates-set: "&eCoordinates: X: {x}, Z: {z}"
+  approaching-treasure: "&6You're getting close to the treasure location..."
+  
+  # Dungeon events
+  bell-found: "&6You found an ancient bell! Right-click to ring it..."
+  bell-rung: "&6The bell rang... something is awakening!"
+  dungeon-started: "&cThe dungeon has begun! Prepare for battle!"
+  
+  # Waves
+  wave-starting: "&eWave {wave} is starting!"
+  wave-completed: "&aWave {wave} completed!"
+  boss-incoming: "&4The boss is approaching..."
+  boss-spawned: "&4{boss} has appeared!"
+  
+  # Combat
+  boss-defeated: "&aYou defeated the boss! A treasure chest appears..."
+  chest-spawned: "&6A treasure chest has appeared with your rewards!"
+  chest-cleared: "&eThe treasure chest disappeared."
+  chest-timeout: "&cThe treasure chest timed out and disappeared!"
+  
+  # Damage ranking
+  damage-ranking-title: "&6&l🏆 Top Damage Dealers:"
+  damage-ranking-entry: "&e{position}. {player} &7- &c{damage} damage"
+  personal-damage: "&7📊 Your damage: &c{damage}"
+  
+  # Errors
+  skill-disabled: "&cThis skill is disabled for treasure maps!"
+  dungeon-in-progress: "&cYou already have an active dungeon!"
+  no-mythicmobs: "&cMythicMobs is required for this feature!"
+  no-worldedit: "&cWorldEdit is required for schematic loading!"
+  schematic-not-found: "&cSchematic file not found: {schematic}"
+  
+  # Commands
+  command-help:
+    - "&6&lTreasure Dungeon Commands:"
+    - "&e/treasure tp &7- Teleport to treasure spawn"
+    - "&e/treasure reload &7- Reload configuration"
+  
+  command-tp-usage: "&eUsage: /treasure tp"
+  command-reload-usage: "&eUsage: /treasure reload"
