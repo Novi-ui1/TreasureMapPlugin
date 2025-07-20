@@ -56,6 +56,13 @@ messages:
   no-mythicmobs: "&cMythicMobs is required for this feature!"
   no-worldedit: "&cWorldEdit is required for schematic loading!"
   schematic-not-found: "&cSchematic file not found: {schematic}"
+  error-occurred: "&cAn error occurred. Please try again later."
+  world-not-configured: "&cTreasure world is not properly configured!"
+  invalid-configuration: "&cInvalid plugin configuration detected!"
+  processing-map: "&eProcessing treasure map... Please wait."
+  location-generation-failed: "&cFailed to find a safe location for your dungeon!"
+  no-dungeon-types: "&cNo dungeon types are configured!"
+  dungeon-start-failed: "&cFailed to start dungeon. Please contact an administrator."
   
   # Commands
   command-help:

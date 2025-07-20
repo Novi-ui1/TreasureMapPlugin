@@ -56,6 +56,13 @@ messages:
   no-mythicmobs: "&cMythicMobs é necessário para esta funcionalidade!"
   no-worldedit: "&cWorldEdit é necessário para carregar schematics!"
   schematic-not-found: "&cFicheiro schematic não encontrado: {schematic}"
+  error-occurred: "&cOcorreu um erro. Tenta novamente mais tarde."
+  world-not-configured: "&cO mundo dos tesouros não está configurado corretamente!"
+  invalid-configuration: "&cConfiguração inválida do plugin detectada!"
+  processing-map: "&eA processar mapa do tesouro... Aguarda."
+  location-generation-failed: "&cFalhou ao encontrar uma localização segura para a tua dungeon!"
+  no-dungeon-types: "&cNenhum tipo de dungeon está configurado!"
+  dungeon-start-failed: "&cFalhou ao iniciar dungeon. Contacta um administrador."
   
   # Comandos
   command-help:

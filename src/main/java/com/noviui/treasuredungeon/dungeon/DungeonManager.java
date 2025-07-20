@@ -5,6 +5,7 @@ import com.noviui.treasuredungeon.config.ConfigManager;
 import com.noviui.treasuredungeon.config.DataManager;
 import com.noviui.treasuredungeon.config.LanguageManager;
 import com.noviui.treasuredungeon.integration.IntegrationManager;
+import com.noviui.treasuredungeon.utils.LocationManager;
 import com.noviui.treasuredungeon.utils.TimeUtils;
 import io.lumine.mythic.api.MythicApi;
 import io.lumine.mythic.bukkit.MythicBukkit;
@@ -21,6 +22,7 @@ import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.logging.Level;
 
 public class DungeonManager {
     
@@ -29,6 +31,7 @@ public class DungeonManager {
     private final DataManager dataManager;
     private final LanguageManager languageManager;
     private final IntegrationManager integrationManager;
+    private final LocationManager locationManager;
     
     // Active dungeons tracking
     private final Map<UUID, String> playerActiveDungeon = new ConcurrentHashMap<>();
@@ -43,116 +46,213 @@ public class DungeonManager {
         this.dataManager = plugin.getDataManager();
         this.languageManager = plugin.getLanguageManager();
         this.integrationManager = plugin.getIntegrationManager();
+        this.locationManager = plugin.getLocationManager();
     }
     
     public void startDungeon(Player player, String skill, Location bellLocation) {
-        UUID playerId = player.getUniqueId();
-        
-        // Remove bell
-        bellLocation.getBlock().setType(Material.AIR);
-        
-        // Load dungeon schematic
-        String dungeonType = playerDungeonType.get(playerId);
-        if (dungeonType == null) {
-            plugin.getLogger().warning("No dungeon type found for player " + player.getName());
+        if (player == null || skill == null || bellLocation == null) {
+            plugin.getLogger().warning("Invalid parameters in startDungeon");
             return;
         }
         
-        String dungeonSchematic = configManager.getDungeonTypeDungeonSchematic(dungeonType);
-        if (dungeonSchematic != null && integrationManager.isWorldEditEnabled()) {
-            loadSchematic(dungeonSchematic, bellLocation);
+        UUID playerId = player.getUniqueId();
+        
+        try {
+            // Remove bell
+            bellLocation.getBlock().setType(Material.AIR);
+            
+            // Load dungeon schematic
+            String dungeonType = playerDungeonType.get(playerId);
+            if (dungeonType == null) {
+                plugin.getLogger().warning("No dungeon type found for player " + player.getName());
+                return;
+            }
+            
+            String dungeonSchematic = configManager.getDungeonTypeDungeonSchematic(dungeonType);
+            if (dungeonSchematic != null && !dungeonSchematic.trim().isEmpty() && integrationManager.isWorldEditEnabled()) {
+                loadSchematic(dungeonSchematic, bellLocation);
+            }
+            
+            // Mark dungeon as active
+            playerActiveDungeon.put(playerId, skill);
+            
+            // Send start message
+            String message = languageManager.getMessage("dungeon-started");
+            player.sendMessage(languageManager.getPrefix() + message);
+            
+            // Start waves
+            startWaves(player, skill, bellLocation);
+            
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Error starting dungeon for player " + player.getName(), e);
+            
+            // Cleanup on error
+            cleanupPlayerDungeon(playerId, skill);
+            
+            String errorMessage = languageManager.getMessage("dungeon-start-failed");
+            player.sendMessage(languageManager.getPrefix() + errorMessage);
         }
-        
-        // Mark dungeon as active
-        playerActiveDungeon.put(playerId, skill);
-        
-        // Send start message
-        String message = languageManager.getMessage("dungeon-started");
-        player.sendMessage(languageManager.getPrefix() + message);
-        
-        // Start waves
-        startWaves(player, skill, bellLocation);
     }
     
     private void startWaves(Player player, String skill, Location location) {
+        if (player == null || skill == null || location == null) {
+            plugin.getLogger().warning("Invalid parameters in startWaves");
+            return;
+        }
+        
         UUID playerId = player.getUniqueId();
         String dungeonType = playerDungeonType.get(playerId);
+        
         if (dungeonType == null) {
             plugin.getLogger().warning("No dungeon type found for player " + player.getName());
             return;
         }
         
-        int waveCount = configManager.getDungeonTypeWaveCount(dungeonType);
-        
-        BukkitTask task = new BukkitRunnable() {
-            int currentWave = 1;
+        try {
+            int waveCount = configManager.getDungeonTypeWaveCount(dungeonType);
             
-            @Override
-            public void run() {
-                if (currentWave <= waveCount) {
-                    spawnWave(player, dungeonType, currentWave, location);
-                    currentWave++;
-                } else {
-                    // All waves completed, spawn boss
-                    this.cancel();
-                    spawnBoss(player, dungeonType, location);
-                }
+            if (waveCount <= 0) {
+                plugin.getLogger().warning("Invalid wave count for dungeon type: " + dungeonType);
+                spawnBoss(player, dungeonType, location);
+                return;
             }
-        }.runTaskTimer(plugin, 0L, TimeUtils.parseTimeToTicks(configManager.getWaveDelay()));
-        
-        activeTasks.put(playerId, task);
+            
+            BukkitTask task = new BukkitRunnable() {
+                int currentWave = 1;
+                
+                @Override
+                public void run() {
+                    try {
+                        // Check if player is still online and in the right world
+                        if (!player.isOnline() || !player.getWorld().equals(location.getWorld())) {
+                            this.cancel();
+                            cleanupPlayerDungeon(playerId, skill);
+                            return;
+                        }
+                        
+                        if (currentWave <= waveCount) {
+                            spawnWave(player, dungeonType, currentWave, location);
+                            currentWave++;
+                        } else {
+                            // All waves completed, spawn boss
+                            this.cancel();
+                            spawnBoss(player, dungeonType, location);
+                        }
+                    } catch (Exception e) {
+                        plugin.getLogger().log(Level.SEVERE, "Error in wave task for player " + player.getName(), e);
+                        this.cancel();
+                        cleanupPlayerDungeon(playerId, skill);
+                    }
+                }
+            }.runTaskTimer(plugin, 0L, TimeUtils.parseTimeToTicks(configManager.getWaveDelay()));
+            
+            activeTasks.put(playerId, task);
+            
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Error starting waves for player " + player.getName(), e);
+            cleanupPlayerDungeon(playerId, skill);
+        }
     }
     
     private void spawnWave(Player player, String dungeonType, int wave, Location location) {
-        Map<String, String> placeholders = new HashMap<>();
-        placeholders.put("wave", String.valueOf(wave));
-        
-        String message = languageManager.getMessage("wave-starting", placeholders);
-        player.sendMessage(languageManager.getPrefix() + message);
-        
-        // Get mobs for this wave
-        List<String> mobs = configManager.getDungeonTypeWaveMobs(dungeonType, wave);
-        
-        if (mobs != null && !mobs.isEmpty() && integrationManager.isMythicMobsEnabled()) {
-            for (String mobId : mobs) {
-                spawnMythicMob(mobId, location);
-            }
+        if (player == null || !player.isOnline() || dungeonType == null || location == null) {
+            plugin.getLogger().warning("Invalid parameters in spawnWave");
+            return;
         }
         
-        // Schedule wave completion message
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            String completeMessage = languageManager.getMessage("wave-completed", placeholders);
-            player.sendMessage(languageManager.getPrefix() + completeMessage);
-        }, TimeUtils.parseTimeToTicks(configManager.getWaveDelay()) - 20L);
+        try {
+            Map<String, String> placeholders = new HashMap<>();
+            placeholders.put("wave", String.valueOf(wave));
+            
+            String message = languageManager.getMessage("wave-starting", placeholders);
+            player.sendMessage(languageManager.getPrefix() + message);
+            
+            // Get mobs for this wave
+            List<String> mobs = configManager.getDungeonTypeWaveMobs(dungeonType, wave);
+            
+            if (mobs != null && !mobs.isEmpty() && integrationManager.isMythicMobsEnabled()) {
+                for (String mobId : mobs) {
+                    if (mobId != null && !mobId.trim().isEmpty()) {
+                        spawnMythicMob(mobId, location);
+                    }
+                }
+            } else {
+                plugin.getLogger().warning("No mobs configured for wave " + wave + " of dungeon type " + dungeonType);
+            }
+            
+            // Schedule wave completion message
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                try {
+                    if (player.isOnline()) {
+                        String completeMessage = languageManager.getMessage("wave-completed", placeholders);
+                        player.sendMessage(languageManager.getPrefix() + completeMessage);
+                    }
+                } catch (Exception e) {
+                    plugin.getLogger().log(Level.WARNING, "Error sending wave completion message", e);
+                }
+            }, Math.max(20L, TimeUtils.parseTimeToTicks(configManager.getWaveDelay()) - 20L));
+            
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Error spawning wave " + wave + " for player " + player.getName(), e);
+        }
     }
     
     private void spawnBoss(Player player, String dungeonType, Location location) {
-        String bossMessage = languageManager.getMessage("boss-incoming");
-        player.sendMessage(languageManager.getPrefix() + bossMessage);
+        if (player == null || !player.isOnline() || dungeonType == null || location == null) {
+            plugin.getLogger().warning("Invalid parameters in spawnBoss");
+            return;
+        }
         
-        // Delay before boss spawn
-        String spawnDelay = configManager.getDungeonTypeBossSpawnDelay(dungeonType);
-        long delayTicks = TimeUtils.parseTimeToTicks(spawnDelay);
-        
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            String bossId = configManager.getDungeonTypeBoss(dungeonType);
-            if (bossId != null && integrationManager.isMythicMobsEnabled()) {
-                Entity boss = spawnMythicMob(bossId, location);
-                if (boss != null) {
-                    // Initialize damage tracking
-                    bossDamageTracker.put(boss.getUniqueId(), new ConcurrentHashMap<>());
+        try {
+            String bossMessage = languageManager.getMessage("boss-incoming");
+            player.sendMessage(languageManager.getPrefix() + bossMessage);
+            
+            // Delay before boss spawn
+            String spawnDelay = configManager.getDungeonTypeBossSpawnDelay(dungeonType);
+            long delayTicks = TimeUtils.parseTimeToTicks(spawnDelay);
+            
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                try {
+                    // Check if player is still online
+                    if (!player.isOnline()) {
+                        return;
+                    }
                     
-                    Map<String, String> placeholders = new HashMap<>();
-                    placeholders.put("boss", bossId);
-                    String spawnedMessage = languageManager.getMessage("boss-spawned", placeholders);
-                    player.sendMessage(languageManager.getPrefix() + spawnedMessage);
+                    String bossId = configManager.getDungeonTypeBoss(dungeonType);
+                    if (bossId != null && !bossId.trim().isEmpty() && integrationManager.isMythicMobsEnabled()) {
+                        Entity boss = spawnMythicMob(bossId, location);
+                        if (boss != null) {
+                            // Initialize damage tracking
+                            bossDamageTracker.put(boss.getUniqueId(), new ConcurrentHashMap<>());
+                            
+                            Map<String, String> placeholders = new HashMap<>();
+                            placeholders.put("boss", bossId);
+                            String spawnedMessage = languageManager.getMessage("boss-spawned", placeholders);
+                            player.sendMessage(languageManager.getPrefix() + spawnedMessage);
+                        } else {
+                            plugin.getLogger().warning("Failed to spawn boss " + bossId + " for player " + player.getName());
+                        }
+                    } else {
+                        plugin.getLogger().warning("No boss configured for dungeon type " + dungeonType);
+                    }
+                } catch (Exception e) {
+                    plugin.getLogger().log(Level.SEVERE, "Error in boss spawn task for player " + player.getName(), e);
                 }
-            }
-        }, delayTicks);
+            }, Math.max(20L, delayTicks));
+            
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Error spawning boss for player " + player.getName(), e);
+        }
     }
     
     private Entity spawnMythicMob(String mobId, Location location) {
         if (!integrationManager.isMythicMobsEnabled()) {
+            plugin.getLogger().warning("Attempted to spawn MythicMob but MythicMobs is not enabled");
+            return null;
+        }
+        
+        if (mobId == null || mobId.trim().isEmpty() || location == null) {
+            plugin.getLogger().warning("Invalid parameters for MythicMob spawn: mobId=" + mobId + ", location=" + location);
             return null;
         }
         
@@ -160,147 +260,230 @@ public class DungeonManager {
             MythicApi mythicApi = MythicBukkit.inst().getAPIHelper();
             return mythicApi.spawnMythicMob(mobId, location);
         } catch (Exception e) {
-            plugin.getLogger().warning("Failed to spawn MythicMob: " + mobId);
+            plugin.getLogger().log(Level.WARNING, "Failed to spawn MythicMob: " + mobId, e);
             return null;
         }
     }
     
     public void handleBossDefeat(LivingEntity boss, Player killer) {
-        UUID bossId = boss.getUniqueId();
-        Map<UUID, Double> damageMap = bossDamageTracker.get(bossId);
-        
-        if (damageMap == null) {
+        if (boss == null || killer == null) {
+            plugin.getLogger().warning("Invalid parameters in handleBossDefeat");
             return;
         }
         
-        // Send boss defeated message
-        String message = languageManager.getMessage("boss-defeated");
-        killer.sendMessage(languageManager.getPrefix() + message);
+        UUID bossId = boss.getUniqueId();
+        Map<UUID, Double> damageMap = bossDamageTracker.get(bossId);
         
-        // Show damage ranking
-        if (configManager.isDamageTrackingEnabled()) {
-            showDamageRanking(killer, damageMap);
+        try {
+            // Send boss defeated message
+            String message = languageManager.getMessage("boss-defeated");
+            killer.sendMessage(languageManager.getPrefix() + message);
+            
+            // Show damage ranking
+            if (configManager.isDamageTrackingEnabled() && damageMap != null) {
+                showDamageRanking(killer, damageMap);
+            }
+            
+            // Spawn loot chest
+            spawnLootChest(killer, boss.getLocation());
+            
+            // Clean up dungeon
+            String skill = playerActiveDungeon.get(killer.getUniqueId());
+            if (skill != null) {
+                completeDungeon(killer, skill);
+            }
+            
+            // Remove damage tracking
+            bossDamageTracker.remove(bossId);
+            
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Error handling boss defeat for player " + killer.getName(), e);
         }
-        
-        // Spawn loot chest
-        spawnLootChest(killer, boss.getLocation());
-        
-        // Clean up dungeon
-        String skill = playerActiveDungeon.get(killer.getUniqueId());
-        if (skill != null) {
-            completeDungeon(killer, skill);
-        }
-        
-        // Remove damage tracking
-        bossDamageTracker.remove(bossId);
     }
     
     private void showDamageRanking(Player player, Map<UUID, Double> damageMap) {
-        // Sort by damage
-        List<Map.Entry<UUID, Double>> sortedEntries = new ArrayList<>(damageMap.entrySet());
-        sortedEntries.sort((a, b) -> Double.compare(b.getValue(), a.getValue()));
-        
-        // Show top 3
-        player.sendMessage("");
-        player.sendMessage(languageManager.getMessage("damage-ranking-title"));
-        
-        for (int i = 0; i < Math.min(3, sortedEntries.size()); i++) {
-            Map.Entry<UUID, Double> entry = sortedEntries.get(i);
-            Player damagePlayer = Bukkit.getPlayer(entry.getKey());
-            String playerName = damagePlayer != null ? damagePlayer.getName() : "Unknown";
-            
-            Map<String, String> placeholders = new HashMap<>();
-            placeholders.put("position", String.valueOf(i + 1));
-            placeholders.put("player", playerName);
-            placeholders.put("damage", String.valueOf(entry.getValue().intValue()));
-            
-            String rankingEntry = languageManager.getMessage("damage-ranking-entry", placeholders);
-            player.sendMessage(rankingEntry);
+        if (player == null || !player.isOnline() || damageMap == null || damageMap.isEmpty()) {
+            return;
         }
         
-        // Show personal damage if not in top 3
-        if (configManager.showPersonalDamage()) {
-            Double personalDamage = damageMap.get(player.getUniqueId());
-            if (personalDamage != null && sortedEntries.stream().limit(3)
-                    .noneMatch(entry -> entry.getKey().equals(player.getUniqueId()))) {
+        try {
+            // Sort by damage
+            List<Map.Entry<UUID, Double>> sortedEntries = new ArrayList<>(damageMap.entrySet());
+            sortedEntries.sort((a, b) -> Double.compare(b.getValue(), a.getValue()));
+            
+            // Show top 3
+            player.sendMessage("");
+            player.sendMessage(languageManager.getMessage("damage-ranking-title"));
+            
+            for (int i = 0; i < Math.min(3, sortedEntries.size()); i++) {
+                Map.Entry<UUID, Double> entry = sortedEntries.get(i);
+                Player damagePlayer = Bukkit.getPlayer(entry.getKey());
+                String playerName = damagePlayer != null ? damagePlayer.getName() : "Unknown";
                 
                 Map<String, String> placeholders = new HashMap<>();
-                placeholders.put("damage", String.valueOf(personalDamage.intValue()));
-                String personalMessage = languageManager.getMessage("personal-damage", placeholders);
-                player.sendMessage(personalMessage);
+                placeholders.put("position", String.valueOf(i + 1));
+                placeholders.put("player", playerName);
+                placeholders.put("damage", String.valueOf(entry.getValue().intValue()));
+                
+                String rankingEntry = languageManager.getMessage("damage-ranking-entry", placeholders);
+                player.sendMessage(rankingEntry);
             }
+            
+            // Show personal damage if not in top 3
+            if (configManager.showPersonalDamage()) {
+                Double personalDamage = damageMap.get(player.getUniqueId());
+                if (personalDamage != null && sortedEntries.stream().limit(3)
+                        .noneMatch(entry -> entry.getKey().equals(player.getUniqueId()))) {
+                    
+                    Map<String, String> placeholders = new HashMap<>();
+                    placeholders.put("damage", String.valueOf(personalDamage.intValue()));
+                    String personalMessage = languageManager.getMessage("personal-damage", placeholders);
+                    player.sendMessage(personalMessage);
+                }
+            }
+            
+            // Schedule message cleanup
+            long showDuration = TimeUtils.parseTimeToTicks(configManager.getDamageShowDuration());
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                try {
+                    if (player.isOnline()) {
+                        for (int i = 0; i < 10; i++) {
+                            player.sendMessage("");
+                        }
+                    }
+                } catch (Exception e) {
+                    plugin.getLogger().log(Level.WARNING, "Error clearing damage ranking messages", e);
+                }
+            }, Math.max(20L, showDuration));
+            
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.WARNING, "Error showing damage ranking for player " + player.getName(), e);
         }
-        
-        // Schedule message cleanup
-        long showDuration = TimeUtils.parseTimeToTicks(configManager.getDamageShowDuration());
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            for (int i = 0; i < 10; i++) {
-                player.sendMessage("");
-            }
-        }, showDuration);
     }
     
     private void spawnLootChest(Player player, Location location) {
-        // Place chest
-        location.getBlock().setType(Material.CHEST);
+        if (player == null || !player.isOnline() || location == null) {
+            plugin.getLogger().warning("Invalid parameters in spawnLootChest");
+            return;
+        }
         
-        String dungeonType = playerDungeonType.get(player.getUniqueId());
-        if (dungeonType != null) {
-            // Execute loot commands
-            String lootType = configManager.getDungeonTypeLootType(dungeonType);
-            if ("commands".equals(lootType)) {
-                List<String> commands = configManager.getDungeonTypeLootCommands(dungeonType);
-                if (commands != null) {
-                    for (String command : commands) {
-                        String processedCommand = command.replace("{player}", player.getName());
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand);
+        try {
+            // Place chest
+            location.getBlock().setType(Material.CHEST);
+            
+            String dungeonType = playerDungeonType.get(player.getUniqueId());
+            if (dungeonType != null) {
+                // Execute loot commands
+                String lootType = configManager.getDungeonTypeLootType(dungeonType);
+                if ("commands".equals(lootType)) {
+                    List<String> commands = configManager.getDungeonTypeLootCommands(dungeonType);
+                    if (commands != null && !commands.isEmpty()) {
+                        for (String command : commands) {
+                            if (command != null && !command.trim().isEmpty()) {
+                                try {
+                                    String processedCommand = command.replace("{player}", player.getName());
+                                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), processedCommand);
+                                } catch (Exception e) {
+                                    plugin.getLogger().log(Level.WARNING, "Error executing loot command: " + command, e);
+                                }
+                            }
+                        }
                     }
                 }
             }
+            
+            // Send message
+            String message = languageManager.getMessage("chest-spawned");
+            player.sendMessage(languageManager.getPrefix() + message);
+            
+            // Schedule chest cleanup
+            long timeout = TimeUtils.parseTimeToTicks(configManager.getChestTimeout());
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                try {
+                    if (location.getBlock().getType() == Material.CHEST) {
+                        location.getBlock().setType(Material.AIR);
+                        if (player.isOnline()) {
+                            String timeoutMessage = languageManager.getMessage("chest-timeout");
+                            player.sendMessage(languageManager.getPrefix() + timeoutMessage);
+                        }
+                    }
+                } catch (Exception e) {
+                    plugin.getLogger().log(Level.WARNING, "Error during chest cleanup", e);
+                }
+            }, Math.max(20L, timeout));
+            
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Error spawning loot chest for player " + player.getName(), e);
         }
-        
-        // Send message
-        String message = languageManager.getMessage("chest-spawned");
-        player.sendMessage(languageManager.getPrefix() + message);
-        
-        // Schedule chest cleanup
-        long timeout = TimeUtils.parseTimeToTicks(configManager.getChestTimeout());
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (location.getBlock().getType() == Material.CHEST) {
-                location.getBlock().setType(Material.AIR);
-                String timeoutMessage = languageManager.getMessage("chest-timeout");
-                player.sendMessage(languageManager.getPrefix() + timeoutMessage);
-            }
-        }, timeout);
     }
     
     private void completeDungeon(Player player, String skill) {
+        if (player == null || skill == null) {
+            plugin.getLogger().warning("Invalid parameters in completeDungeon");
+            return;
+        }
+        
         UUID playerId = player.getUniqueId();
         
-        // Clear active dungeon
-        playerActiveDungeon.remove(playerId);
-        playerDungeonType.remove(playerId);
-        dataManager.clearActiveDungeon(playerId, skill);
-        
-        // Cancel any active tasks
-        BukkitTask task = activeTasks.get(playerId);
-        if (task != null) {
-            task.cancel();
-            activeTasks.remove(playerId);
+        try {
+            // Get dungeon location before clearing data
+            int[] coords = dataManager.getDungeonCoords(playerId, skill);
+            Location dungeonLocation = new Location(player.getWorld(), coords[0], coords[1], coords[2]);
+            
+            // Release location in LocationManager
+            locationManager.releaseLocation(dungeonLocation, playerId);
+            
+            // Clear active dungeon
+            cleanupPlayerDungeon(playerId, skill);
+            
+            // Allow new map generation
+            dataManager.setMapReceived(playerId, skill, false);
+            
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Error completing dungeon for player " + player.getName(), e);
+        }
+    }
+    
+    private void cleanupPlayerDungeon(UUID playerId, String skill) {
+        if (playerId == null || skill == null) {
+            return;
         }
         
-        // Clear bell location
-        Map<String, Location> bellMap = playerBellLocations.get(playerId);
-        if (bellMap != null) {
-            bellMap.remove(skill);
+        try {
+            // Clear active dungeon
+            playerActiveDungeon.remove(playerId);
+            playerDungeonType.remove(playerId);
+            dataManager.clearActiveDungeon(playerId, skill);
+            
+            // Cancel any active tasks
+            BukkitTask task = activeTasks.get(playerId);
+            if (task != null && !task.isCancelled()) {
+                task.cancel();
+                activeTasks.remove(playerId);
+            }
+            
+            // Clear bell location
+            Map<String, Location> bellMap = playerBellLocations.get(playerId);
+            if (bellMap != null) {
+                bellMap.remove(skill);
+                if (bellMap.isEmpty()) {
+                    playerBellLocations.remove(playerId);
+                }
+            }
+            
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.WARNING, "Error during player dungeon cleanup for " + playerId, e);
         }
-        
-        // Allow new map generation
-        dataManager.setMapReceived(playerId, skill, false);
     }
     
     public void loadSchematic(String schematicName, Location location) {
         if (!integrationManager.isWorldEditEnabled()) {
+            plugin.getLogger().warning("Attempted to load schematic but WorldEdit is not enabled");
+            return;
+        }
+        
+        if (schematicName == null || schematicName.trim().isEmpty() || location == null) {
+            plugin.getLogger().warning("Invalid parameters for schematic loading: name=" + schematicName + ", location=" + location);
             return;
         }
         
@@ -316,71 +499,103 @@ public class DungeonManager {
             plugin.getLogger().info("Loading schematic: " + schematicName + " at " + location);
             
         } catch (Exception e) {
-            plugin.getLogger().warning("Failed to load schematic: " + schematicName);
+            plugin.getLogger().log(Level.WARNING, "Failed to load schematic: " + schematicName, e);
         }
     }
     
     public void setBellLocation(UUID playerId, String skill, Location location) {
+        if (playerId == null || skill == null || location == null) {
+            plugin.getLogger().warning("Invalid parameters in setBellLocation");
+            return;
+        }
+        
         playerBellLocations.computeIfAbsent(playerId, k -> new HashMap<>()).put(skill, location);
     }
     
     public String getBellSkill(UUID playerId, Location bellLocation) {
+        if (playerId == null || bellLocation == null) {
+            return null;
+        }
+        
         Map<String, Location> bellMap = playerBellLocations.get(playerId);
         if (bellMap == null) {
             return null;
         }
         
-        for (Map.Entry<String, Location> entry : bellMap.entrySet()) {
-            if (entry.getValue().distance(bellLocation) < 5) {
-                return entry.getKey();
+        try {
+            for (Map.Entry<String, Location> entry : bellMap.entrySet()) {
+                Location storedLocation = entry.getValue();
+                if (storedLocation != null && storedLocation.getWorld().equals(bellLocation.getWorld()) &&
+                    storedLocation.distance(bellLocation) < 5) {
+                    return entry.getKey();
+                }
             }
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.WARNING, "Error finding bell skill for player " + playerId, e);
         }
         
         return null;
     }
     
     public String selectRandomDungeonType() {
-        Set<String> dungeonTypes = configManager.getDungeonTypes();
-        if (dungeonTypes.isEmpty()) {
+        try {
+            Set<String> dungeonTypes = configManager.getDungeonTypes();
+            if (dungeonTypes == null || dungeonTypes.isEmpty()) {
+                plugin.getLogger().warning("No dungeon types configured");
+                return null;
+            }
+            
+            // Calculate total weight
+            int totalWeight = 0;
+            Map<String, Integer> weights = new HashMap<>();
+            
+            for (String dungeonType : dungeonTypes) {
+                if (dungeonType != null && !dungeonType.trim().isEmpty()) {
+                    int weight = Math.max(1, configManager.getDungeonTypeWeight(dungeonType));
+                    weights.put(dungeonType, weight);
+                    totalWeight += weight;
+                }
+            }
+            
+            if (totalWeight == 0 || weights.isEmpty()) {
+                plugin.getLogger().warning("No valid dungeon types with weights found");
+                return null;
+            }
+            
+            // Weighted random selection
+            int randomValue = ThreadLocalRandom.current().nextInt(totalWeight);
+            int currentWeight = 0;
+            
+            for (Map.Entry<String, Integer> entry : weights.entrySet()) {
+                currentWeight += entry.getValue();
+                if (randomValue < currentWeight) {
+                    return entry.getKey();
+                }
+            }
+            
+            // Fallback (should never reach here)
+            return weights.keySet().iterator().next();
+            
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Error selecting random dungeon type", e);
             return null;
         }
-        
-        // Calculate total weight
-        int totalWeight = 0;
-        Map<String, Integer> weights = new HashMap<>();
-        
-        for (String dungeonType : dungeonTypes) {
-            int weight = configManager.getDungeonTypeWeight(dungeonType);
-            weights.put(dungeonType, weight);
-            totalWeight += weight;
-        }
-        
-        if (totalWeight == 0) {
-            // Fallback to equal probability
-            List<String> typeList = new ArrayList<>(dungeonTypes);
-            return typeList.get(ThreadLocalRandom.current().nextInt(typeList.size()));
-        }
-        
-        // Weighted random selection
-        int randomValue = ThreadLocalRandom.current().nextInt(totalWeight);
-        int currentWeight = 0;
-        
-        for (Map.Entry<String, Integer> entry : weights.entrySet()) {
-            currentWeight += entry.getValue();
-            if (randomValue < currentWeight) {
-                return entry.getKey();
-            }
-        }
-        
-        // Fallback (should never reach here)
-        return dungeonTypes.iterator().next();
     }
     
     public void setPlayerDungeonType(UUID playerId, String dungeonType) {
+        if (playerId == null || dungeonType == null || dungeonType.trim().isEmpty()) {
+            plugin.getLogger().warning("Invalid parameters in setPlayerDungeonType");
+            return;
+        }
+        
         playerDungeonType.put(playerId, dungeonType);
     }
     
     public void addBossDamage(UUID bossId, UUID playerId, double damage) {
+        if (bossId == null || playerId == null || damage < 0) {
+            return;
+        }
+        
         Map<UUID, Double> damageMap = bossDamageTracker.get(bossId);
         if (damageMap != null) {
             damageMap.merge(playerId, damage, Double::sum);
@@ -388,14 +603,25 @@ public class DungeonManager {
     }
     
     public void cleanup() {
-        // Cancel all active tasks
-        activeTasks.values().forEach(BukkitTask::cancel);
-        activeTasks.clear();
-        
-        // Clear all tracking data
-        playerActiveDungeon.clear();
-        playerDungeonType.clear();
-        playerBellLocations.clear();
-        bossDamageTracker.clear();
+        try {
+            // Cancel all active tasks
+            for (BukkitTask task : activeTasks.values()) {
+                if (task != null && !task.isCancelled()) {
+                    task.cancel();
+                }
+            }
+            activeTasks.clear();
+            
+            // Clear all tracking data
+            playerActiveDungeon.clear();
+            playerDungeonType.clear();
+            playerBellLocations.clear();
+            bossDamageTracker.clear();
+            
+            plugin.getLogger().info("Dungeon manager cleanup completed");
+            
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.WARNING, "Error during dungeon manager cleanup", e);
+        }
     }
 }
