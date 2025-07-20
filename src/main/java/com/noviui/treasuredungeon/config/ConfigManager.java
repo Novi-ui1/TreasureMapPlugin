@@ -3,6 +3,7 @@ package com.noviui.treasuredungeon.config;
 import com.noviui.treasuredungeon.TreasureDungeonPlugin;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -96,6 +97,10 @@ public class ConfigManager {
     
     public boolean isGlobalAnnounce() {
         return config.getBoolean("general.announce-globally", true);
+    }
+    
+    public boolean isUpdateCheckEnabled() {
+        return config.getBoolean("general.check-updates", true);
     }
     
     public List<String> getBlockedCommands() {

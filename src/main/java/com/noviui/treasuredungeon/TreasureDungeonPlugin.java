@@ -12,6 +12,7 @@ import com.noviui.treasuredungeon.listeners.PlayerInteractListener;
 import com.noviui.treasuredungeon.listeners.ProximityListener;
 import com.noviui.treasuredungeon.map.MapManager;
 import com.noviui.treasuredungeon.utils.LocationManager;
+import com.noviui.treasuredungeon.utils.UpdateChecker;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -30,6 +31,7 @@ public final class TreasureDungeonPlugin extends JavaPlugin {
     private MapManager mapManager;
     private DungeonManager dungeonManager;
     private LocationManager locationManager;
+    private UpdateChecker updateChecker;
     
     private BukkitTask autoSaveTask;
     
@@ -48,6 +50,9 @@ public final class TreasureDungeonPlugin extends JavaPlugin {
                 
                 // Start auto-save task
                 startAutoSaveTask();
+                
+                // Check for updates
+                checkForUpdates();
                 
                 getLogger().info("TreasureDungeon plugin enabled successfully!");
             }).exceptionally(throwable -> {
@@ -101,6 +106,7 @@ public final class TreasureDungeonPlugin extends JavaPlugin {
             this.mapManager = new MapManager(this);
             this.dungeonManager = new DungeonManager(this);
             this.locationManager = new LocationManager(this);
+            this.updateChecker = new UpdateChecker(this);
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialize managers", e);
         }
@@ -190,6 +196,19 @@ public final class TreasureDungeonPlugin extends JavaPlugin {
                 getLogger().log(Level.WARNING, "Error during auto-save", e);
             }
         }, 6000L, 6000L); // 5 minutes = 6000 ticks
+    }
+    
+    private void checkForUpdates() {
+        if (configManager.isUpdateCheckEnabled()) {
+            updateChecker.checkForUpdates().thenAccept(result -> {
+                if (result.hasUpdate()) {
+                    updateChecker.notifyAdmins(result);
+                }
+            }).exceptionally(throwable -> {
+                getLogger().log(Level.WARNING, "Failed to check for updates", throwable);
+                return null;
+            });
+        }
     }
     
     public CompletableFuture<Void> reloadAsync() {

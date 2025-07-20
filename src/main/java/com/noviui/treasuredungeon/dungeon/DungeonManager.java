@@ -23,6 +23,20 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
+
+import java.io.File;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.logging.Level;
 
 public class DungeonManager {
     
@@ -32,6 +46,7 @@ public class DungeonManager {
     private final LanguageManager languageManager;
     private final IntegrationManager integrationManager;
     private final LocationManager locationManager;
+    private final SpawnManager spawnManager;
     
     // Active dungeons tracking
     private final Map<UUID, String> playerActiveDungeon = new ConcurrentHashMap<>();
@@ -47,6 +62,7 @@ public class DungeonManager {
         this.languageManager = plugin.getLanguageManager();
         this.integrationManager = plugin.getIntegrationManager();
         this.locationManager = plugin.getLocationManager();
+        this.spawnManager = new SpawnManager(plugin);
     }
     
     public void startDungeon(Player player, String skill, Location bellLocation) {
@@ -171,9 +187,16 @@ public class DungeonManager {
             List<String> mobs = configManager.getDungeonTypeWaveMobs(dungeonType, wave);
             
             if (mobs != null && !mobs.isEmpty() && integrationManager.isMythicMobsEnabled()) {
+                // Find spawn locations for this wave
+                List<Location> spawnLocations = spawnManager.findMobSpawnLocations(location, mobs.size());
+                
+                int spawnIndex = 0;
                 for (String mobId : mobs) {
                     if (mobId != null && !mobId.trim().isEmpty()) {
-                        spawnMythicMob(mobId, location);
+                        Location spawnLoc = spawnIndex < spawnLocations.size() ? 
+                            spawnLocations.get(spawnIndex) : location;
+                        spawnMythicMob(mobId, spawnLoc);
+                        spawnIndex++;
                     }
                 }
             } else {
@@ -220,7 +243,9 @@ public class DungeonManager {
                     
                     String bossId = configManager.getDungeonTypeBoss(dungeonType);
                     if (bossId != null && !bossId.trim().isEmpty() && integrationManager.isMythicMobsEnabled()) {
-                        Entity boss = spawnMythicMob(bossId, location);
+                        // Find optimal boss spawn location
+                        Location bossSpawnLocation = spawnManager.findBossSpawnLocation(location);
+                        Entity boss = spawnMythicMob(bossId, bossSpawnLocation);
                         if (boss != null) {
                             // Initialize damage tracking
                             bossDamageTracker.put(boss.getUniqueId(), new ConcurrentHashMap<>());

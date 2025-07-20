@@ -46,6 +46,9 @@ general:
   # Global announcements
   announce-globally: true
   
+  # Check for plugin updates
+  check-updates: true
+  
   # Block certain commands in treasure world
   blocked-commands:
     - "tpa"
